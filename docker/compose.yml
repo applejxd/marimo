@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  colab_local:
+    # cf. https://zenn.dev/rhene/scraps/2dfde8bde3cd5c
+    image: asia-docker.pkg.dev/colab-images/public/runtime
+    # for interactive shell
+    tty: true
+    restart: always
+    volumes:
+      # Dev Container で commit 可能. 
+      # push はログイン情報が必要なので host 側で.
+      - type: bind
+        source: "../"
+        target: "/workspace"
+    ports:
+      - "9000:8080"
+    # for GPU
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    shm_size: '16gb'

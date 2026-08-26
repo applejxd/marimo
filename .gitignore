@@ -1,0 +1,18 @@
+.venv/
+.cache/
+.ruff_cache/
+__pycache__/
+__marimo__/
+_generated/
+*.py[cod]
+
+# Notebook execution artifacts that are not part of the published site.
+.marimo/
+build/
+data/
+logs/
+runs/
+*.onnx
+*.pth
+*.tflite
+*.npz
