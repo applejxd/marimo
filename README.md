@@ -1,35 +1,38 @@
-# Scientific notebooks with marimo
+# marimo による科学技術 notebook
 
-Scientific and machine-learning examples maintained as executable
-[marimo](https://marimo.io/) notebooks. The original Jupyter notebooks are retained under
-[`legacy/`](legacy/) for migration review; active notebooks live under [`notebooks/`](notebooks/).
-[`migration-map.json`](migration-map.json) records the few renamed notebooks whose original names
-would shadow imported Python packages.
+科学技術計算と機械学習のサンプルを、実行可能な
+[marimo](https://marimo.io/) notebook として管理しています。元の Jupyter notebook は
+移行内容を確認できるように [`legacy/`](legacy/) へ保管し、現在使用する notebook は
+[`notebooks/`](notebooks/) に配置しています。元のファイル名が import する Python
+パッケージと衝突する notebook の名称変更は
+[`migration-map.json`](migration-map.json) に記録しています。
 
-## Environment
+## 実行環境
 
-The project uses [uv](https://docs.astral.sh/uv/) and Python 3.11.
+依存関係の管理には [uv](https://docs.astral.sh/uv/) を使用します。
+対応する Python のバージョンは 3.11 です。
 
 ```shell
 uv sync --all-groups
 ```
 
-The `gpu` group installs PyTorch and TensorFlow. A CUDA-capable GPU is expected for the complete
-site build, although notebooks select CPU explicitly when CUDA is unavailable. `specialized`
-contains large or native packages such as NGSolve and Open3D. A C++ compiler with OpenMP support
-is required by `notebooks/others/cpp.py`.
+`gpu` グループでは PyTorch と TensorFlow をインストールします。すべての notebook から
+サイトを生成する場合は CUDA 対応 GPU の使用を想定していますが、CUDA を利用できない
+環境では notebook が明示的に CPU を選択します。`specialized` グループには NGSolve や
+Open3D などの大規模なパッケージやネイティブパッケージが含まれます。
+`notebooks/others/cpp.py` の実行には OpenMP 対応の C++ コンパイラも必要です。
 
-No notebook requires an API key or other secret. Public datasets are downloaded from fixed URLs
-and cached under the ignored `data/` directory.
+API キーなどの秘密情報を必要とする notebook はありません。公開データセットは固定した
+URL から取得し、Git の追跡対象外である `data/` ディレクトリへキャッシュします。
 
-## Run and edit
+## notebook の実行と編集
 
 ```shell
 uv run --all-groups marimo edit notebooks/algorithm/GradientDescent.py
 uv run --all-groups marimo run notebooks/algorithm/GradientDescent.py
 ```
 
-## Validate
+## 検証
 
 ```shell
 uv run python scripts/check_migration.py
@@ -38,28 +41,34 @@ uv run marimo check --strict notebooks
 uv run python scripts/check_site.py
 ```
 
-## Build the site
+## サイトの生成
 
-`build_site.py` discovers marimo files recursively. Adding a notebook under `notebooks/` is enough
-to add it to the generated index; no hand-maintained list exists.
+`build_site.py` は marimo ファイルを再帰的に自動検出します。`notebooks/` 以下へ
+notebook を追加すると生成される index にも自動で追加されるため、notebook の一覧を
+手動で管理する必要はありません。
 
 ```shell
 uv run python scripts/build_site.py
 python -m http.server --directory site
 ```
 
-Every notebook is executed during export. A non-zero process status, marimo's
-`some cells failed to execute` warning, or an exception marker in generated HTML fails the build
-and removes the affected output. The build also writes `site/notebooks-manifest.json` with SHA-256
-hashes of every source and HTML file; the Pages workflow rejects stale or edited generated output.
-To inspect discovery and index generation without executing:
+export 時にはすべての notebook を実際に実行します。プロセスが 0 以外で終了した場合、
+marimo が `some cells failed to execute` を出力した場合、または生成した HTML に
+例外を示す文字列が含まれる場合は build を失敗させ、該当する出力を削除します。
+また、すべてのソースと HTML の SHA-256 hash を
+`site/notebooks-manifest.json` へ記録します。Pages workflow は、古い生成物や編集された
+生成物を検出した場合に deploy を拒否します。notebook を実行せず、自動検出と index
+生成だけを確認する場合は、次のコマンドを使用します。
 
 ```shell
 uv run python scripts/build_site.py --discover-only
 ```
 
-The generated `site/` directory is committed. GitHub Actions only uploads those static files to
-GitHub Pages; it does not run models, download datasets, or need secrets. For the first deployment,
-set **Settings → Pages → Source** to **GitHub Actions** if automatic enablement is not permitted.
-Pushes that change notebook sources also run the deployment workflow; its manifest check rejects
-the push's site artifact until the affected HTML has been rebuilt.
+生成した `site/` ディレクトリは Git の管理対象です。GitHub Actions はこの静的ファイルを
+GitHub Pages へ upload するだけで、モデルの実行やデータセットの download は行わず、
+秘密情報も必要としません。初回 deploy 時に Pages の自動有効化が許可されていない場合は、
+**Settings → Pages → Source** を **GitHub Actions** に設定してください。
+
+notebook のソースを変更した push でも deploy workflow が起動します。変更した notebook
+の HTML が再生成されるまでは manifest の検査が失敗するため、古いページが公開されることは
+ありません。
