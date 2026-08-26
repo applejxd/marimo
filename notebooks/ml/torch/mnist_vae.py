@@ -26,6 +26,18 @@ def _():
     return
 
 
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ## 共通部品と再現性
+
+    冒頭の `with app.setup` ブロックで marimo、Matplotlib、NumPy、pandas、PyTorch を
+    notebook 全体から使えるようにしています。続くセルでは乱数 seed を 42 に固定し、
+    CUDA、MPS、CPU の順で利用可能な device を選びます。
+    """)
+    return
+
+
 @app.cell
 def _():
     seed = 42
@@ -43,6 +55,18 @@ def _():
     return device
 
 
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ## データ
+
+    torchvision の MNIST を `[0, 1]` の 28×28 tensor として読み込みます。学習時間を
+    抑えながら数字ごとの多様性を確保するため、学習用 20,000 件、評価用 2,000 件を使用し、
+    batch size はそれぞれ 128、256 とします。次の2セルで loader を作成し、入力例を確認します。
+    """)
+    return
+
+
 @app.cell
 def _():
     from torch.utils.data import DataLoader, Subset
@@ -51,7 +75,7 @@ def _():
     transform = transforms.ToTensor()
     train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
     test_dataset = datasets.MNIST("./data", train=False, download=True, transform=transform)
-    train_subset = Subset(train_dataset, list(range(10_000)))
+    train_subset = Subset(train_dataset, list(range(20_000)))
     test_subset = Subset(test_dataset, list(range(2_000)))
     train_loader = DataLoader(train_subset, batch_size=128, shuffle=True, num_workers=0)
     test_loader = DataLoader(test_subset, batch_size=256, shuffle=False, num_workers=0)
@@ -68,6 +92,27 @@ def _(train_subset):
         _axis.axis("off")
     _fig.tight_layout()
     _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ## VAE の構造
+
+    encoder は 784 次元の画像から2次元の潜在分布の平均 $\mu$ と対数分散
+    $\log \sigma^2$ を推定し、decoder は2次元の潜在変数を784個の画素 logit へ戻します。
+    潜在変数は再パラメータ化 trick
+
+    \[
+    q_\phi(z\mid x)=\mathcal{N}\!\left(\mu_\phi(x),
+    \operatorname{diag}(\sigma_\phi^2(x))\right),\qquad
+    z=\mu_\phi(x)+\sigma_\phi(x)\odot\epsilon,\quad
+    \epsilon\sim\mathcal{N}(0,I)
+    \]
+
+    で sampling します。これにより sampling を含む処理でも encoder へ勾配を伝播できます。
+    """)
     return
 
 
@@ -116,6 +161,32 @@ def _(VAE, device):
     return model, optimizer
 
 
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ## 損失関数と学習
+
+    最小化する negative ELBO は、画素の再構成誤差と潜在分布を標準正規分布へ近づける
+    KL divergence の和です。
+
+    \[
+    \mathcal{L}
+      = \operatorname{BCE}(x,\hat{x})
+      + D_{\mathrm{KL}}\!\left(q_\phi(z\mid x)\,\|\,\mathcal{N}(0,I)\right)
+    \]
+
+    \[
+    D_{\mathrm{KL}}
+      = -\frac{1}{2}\sum_j
+        \left(1+\log\sigma_j^2-\mu_j^2-\sigma_j^2\right)
+    \]
+
+    BCE と KL は batch 内で加算し、履歴では dataset 件数で割った1画像あたりの値を表示します。
+    Adam（learning rate `1e-3`）で8 epoch 学習し、各 epoch 後に test loss を計算します。
+    """)
+    return
+
+
 @app.cell
 def _():
     def loss_function(logits, x, mu, logvar):
@@ -139,7 +210,7 @@ def _():
 @app.cell
 def _(device, evaluate, loss_function, model, optimizer, test_loader, train_loader):
     history_rows = []
-    for epoch in range(1, 5):
+    for epoch in range(1, 9):
         model.train()
         total_train_loss = 0.0
         for _batch, _ in train_loader:
@@ -175,6 +246,17 @@ def _(history_frame):
     return
 
 
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ## 再構成結果
+
+    評価用 loader の先頭8枚を encoder と decoder に通します。次の2セルで再構成画像を計算し、
+    入力を上段、再構成を下段に並べて、数字の形がどの程度保たれたかを比較します。
+    """)
+    return
+
+
 @app.cell
 def _(device, model, test_loader):
     preview_batch, preview_labels = next(iter(test_loader))
@@ -203,21 +285,36 @@ def _(preview_batch, preview_labels, reconstructions):
     return
 
 
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ## 2次元潜在空間
+
+    評価用画像500枚について、sampling 後の $z$ ではなく encoder が出力した平均 $\mu$ を
+    取り出します。数字 label で色分けした散布図により、同じ数字が近くへ配置されるか、
+    異なる数字の領域がどのようにつながるかを確認します。
+    """)
+    return
+
+
 @app.cell
 def _(device, model, test_loader):
+    latent_images = []
     latent_points = []
     latent_labels = []
     with torch.no_grad():
         for _batch, _labels in test_loader:
             _batch = _batch.to(device)
             _mu, _ = model.encode(_batch.view(-1, 784))
+            latent_images.append(_batch.cpu())
             latent_points.append(_mu.cpu())
             latent_labels.append(_labels)
             if sum(item.shape[0] for item in latent_points) >= 500:
                 break
+    latent_images = torch.cat(latent_images, dim=0)[:500]
     latent_points = torch.cat(latent_points, dim=0)[:500].numpy()
     latent_labels = torch.cat(latent_labels, dim=0)[:500].numpy()
-    return latent_labels, latent_points
+    return latent_images, latent_labels, latent_points
 
 
 @app.cell
@@ -230,6 +327,18 @@ def _(latent_labels, latent_points):
     _fig.colorbar(_scatter, ax=_ax)
     _fig.tight_layout()
     _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ## checkpoint の round-trip
+
+    学習済み `state_dict` をメモリ上の buffer へ保存し、新しい `VAE` instance へ読み戻します。
+    全 parameter の最大絶対差と、同じ潜在平均から得た再構成 logit の最大絶対差を測り、
+    保存前後のモデルが同じ計算結果を返すことを確認します。
+    """)
     return
 
 
@@ -270,23 +379,105 @@ def _(roundtrip_metrics):
     return
 
 
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ## 潜在空間を数字として読み解く
+
+    一様な座標 grid を decode するだけでは、各画像がどの数字に対応するのか分かりにくいため、
+    test data を encode した潜在平均から数字ごとの重心を求めます。上段は各重心に最も近い
+    0〜9 の入力画像、中段はその潜在表現を VAE で再構成した画像です。下段では数字 1 の
+    重心から数字 7 の重心までを直線補間し、潜在空間上で形が連続的に変化する様子を示します。
+
+    \[
+    z(t)=(1-t)z_1+t z_7,\qquad 0\leq t\leq 1
+    \]
+    """)
+    return
+
+
 @app.cell
-def _(np, reloaded_model):
-    latent_x = np.linspace(-2.0, 2.0, 8)
-    latent_y = np.linspace(-2.0, 2.0, 8)
-    latent_grid = np.stack(np.meshgrid(latent_x, latent_y), axis=-1).reshape(-1, 2)
+def _(latent_images, latent_labels, latent_points, np, reloaded_model):
+    class_centroids = np.stack(
+        [latent_points[latent_labels == digit].mean(axis=0) for digit in range(10)]
+    )
+    representative_indices = np.array(
+        [
+            np.flatnonzero(latent_labels == digit)[
+                np.linalg.norm(
+                    latent_points[latent_labels == digit] - class_centroids[digit],
+                    axis=1,
+                ).argmin()
+            ]
+            for digit in range(10)
+        ]
+    )
+    representative_inputs = latent_images[representative_indices]
+    representative_latents = latent_points[representative_indices]
+    interpolation_weights = np.linspace(0.0, 1.0, 10)
+    interpolation_latents = np.stack(
+        [
+            (1.0 - weight) * class_centroids[1] + weight * class_centroids[7]
+            for weight in interpolation_weights
+        ]
+    )
+    visualization_latents = np.concatenate(
+        [representative_latents, interpolation_latents],
+        axis=0,
+    )
     with torch.no_grad():
-        samples = torch.sigmoid(reloaded_model.decode(torch.tensor(latent_grid, dtype=torch.float32, device=next(reloaded_model.parameters()).device))).cpu()
-    return samples
+        visualization_images = torch.sigmoid(
+            reloaded_model.decode(
+                torch.tensor(
+                    visualization_latents,
+                    dtype=torch.float32,
+                    device=next(reloaded_model.parameters()).device,
+                )
+            )
+        ).cpu()
+    class_prototypes = visualization_images[:10]
+    interpolation_images = visualization_images[10:]
+    return (
+        class_prototypes,
+        interpolation_images,
+        interpolation_weights,
+        representative_inputs,
+    )
 
 
 @app.cell
-def _(samples):
-    _fig, _axes = plt.subplots(8, 8, figsize=(8, 8))
-    for _axis, _image in zip(_axes.ravel(), samples, strict=False):
-        _axis.imshow(_image.view(28, 28), cmap="gray")
+def _(
+    class_prototypes,
+    interpolation_images,
+    interpolation_weights,
+    representative_inputs,
+):
+    _fig, _axes = plt.subplots(3, 10, figsize=(14, 5.5))
+    for _digit, (_axis, _image) in enumerate(
+        zip(_axes[0], representative_inputs, strict=True)
+    ):
+        _axis.imshow(_image.view(28, 28), cmap="gray", vmin=0.0, vmax=1.0)
+        _axis.set_title(str(_digit))
         _axis.axis("off")
-    _fig.suptitle("Decoded latent grid", y=0.92)
+
+    for _axis, _image in zip(_axes[1], class_prototypes, strict=True):
+        _axis.imshow(_image.view(28, 28), cmap="gray", vmin=0.0, vmax=1.0)
+        _axis.axis("off")
+
+    for _axis, _image, _weight in zip(
+        _axes[2],
+        interpolation_images,
+        interpolation_weights,
+        strict=True,
+    ):
+        _axis.imshow(_image.view(28, 28), cmap="gray", vmin=0.0, vmax=1.0)
+        _axis.set_title(f"{_weight:.1f}")
+        _axis.axis("off")
+
+    _axes[0, 0].set_ylabel("representative\ninput")
+    _axes[1, 0].set_ylabel("VAE\nreconstruction")
+    _axes[2, 0].set_ylabel("1 → 7\ninterpolation")
+    _fig.suptitle("Representative digits, reconstructions, and latent interpolation")
     _fig.tight_layout()
     _fig
     return
