@@ -43,10 +43,12 @@ def _():
     mo.md(r"""
     常微分方程式 $y''=-y$ を解くために以下のように連立1階微分方程式に分解する.
 
-    $$\begin{aligned}
+    $$
+    \begin{aligned}
     y'&=z \\
     z'&=-y
-    \end{aligned}$$
+    \end{aligned}
+    $$
 
     コード上は $v\equiv(y,z)$ とする.
     導関数を $v'\equiv f(t,v)$ とし、初期条件を $v(t=0)\equiv v_0 \equiv (1.0, 0.0)$ とすると以下のコードのようになる。

@@ -43,12 +43,14 @@ def _():
     $$
     となる。
     更にハミルトン系へと書き換えると
-    $$\begin{aligned}
-        &\dot{q}_x=p_x,\quad
-        \dot{p}_x=-\frac{q_x}{(q_x^2+q_y^2)^{3/2}},\\
-        &\dot{q}_y=p_y,\quad
-        \dot{p}_y=-\frac{q_y}{(q_x^2+q_y^2)^{3/2}}
-    \end{aligned}$$
+    $$
+    \begin{aligned}
+    &\dot{q}_x=p_x,\quad
+    \dot{p}_x=-\frac{q_x}{(q_x^2+q_y^2)^{3/2}},\\
+    &\dot{q}_y=p_y,\quad
+    \dot{p}_y=-\frac{q_y}{(q_x^2+q_y^2)^{3/2}}
+    \end{aligned}
+    $$
     となる。
     エネルギーは運動の積分で
     $$
@@ -280,12 +282,14 @@ def _():
 def _():
     mo.md(r"""
     ルンゲ・クッタ法は次数 4 の 1 段階法。
-    $$\begin{aligned}
-        &\vec{k}_1\equiv\frac{d\vec{x}}{dt}\left(t,\vec{x}\right),\\
-        &\vec{k}_2\equiv\frac{d\vec{x}}{dt}\left(t+\frac{dt}{2},\vec{x}+\vec{k}_1\frac{dt}{2}\right),\\
-        &\vec{k}_3\equiv\frac{d\vec{x}}{dt}\left(t+\frac{dt}{2},\vec{x}+\vec{k}_2\frac{dt}{2}\right),\\
-        &\vec{k}_4\equiv\frac{d\vec{x}}{dt}\left(t+dt,\vec{x}+\vec{k}_3dt\right),
-    \end{aligned}$$
+    $$
+    \begin{aligned}
+    &\vec{k}_1\equiv\frac{d\vec{x}}{dt}\left(t,\vec{x}\right),\\
+    &\vec{k}_2\equiv\frac{d\vec{x}}{dt}\left(t+\frac{dt}{2},\vec{x}+\vec{k}_1\frac{dt}{2}\right),\\
+    &\vec{k}_3\equiv\frac{d\vec{x}}{dt}\left(t+\frac{dt}{2},\vec{x}+\vec{k}_2\frac{dt}{2}\right),\\
+    &\vec{k}_4\equiv\frac{d\vec{x}}{dt}\left(t+dt,\vec{x}+\vec{k}_3dt\right),
+    \end{aligned}
+    $$
     として
     $$
         \vec{x}(t+dt)
@@ -619,16 +623,20 @@ def _():
 def _():
     mo.md(r"""
     リープ・フロッグ法は中点差分による2段階法で2次のシンプレクティック数値積分。
-    $$\begin{aligned}
-        &\vec{q}(t+2dt)\simeq\vec{q}(t)+\vec{p}(t+dt)\cdot2dt,\\
-        &\vec{p}(t+2dt)\simeq\vec{p}(t)+\frac{d\vec{p}}{dt}(t+dt)\cdot2dt
-    \end{aligned}$$
+    $$
+    \begin{aligned}
+    &\vec{q}(t+2dt)\simeq\vec{q}(t)+\vec{p}(t+dt)\cdot2dt,\\
+    &\vec{p}(t+2dt)\simeq\vec{p}(t)+\frac{d\vec{p}}{dt}(t+dt)\cdot2dt
+    \end{aligned}
+    $$
     分離可能なハミルトン系では
-    $$\begin{aligned}
-        &\vec{q}(t+dt/2)\simeq\vec{q}(t)+\frac{d\vec{q}}{dt}(p(t))dt/2,\\
-        &\vec{p}(t+dt)\simeq\vec{p}(t)+\frac{d\vec{p}}{dt}(q(t+dt/2))dt,\\
-        &\vec{q}(t+dt)\simeq\vec{q}(t+dt/2)+\frac{d\vec{q}}{dt}(p(t+dt))dt/2
-    \end{aligned}$$
+    $$
+    \begin{aligned}
+    &\vec{q}(t+dt/2)\simeq\vec{q}(t)+\frac{d\vec{q}}{dt}(p(t))dt/2,\\
+    &\vec{p}(t+dt)\simeq\vec{p}(t)+\frac{d\vec{p}}{dt}(q(t+dt/2))dt,\\
+    &\vec{q}(t+dt)\simeq\vec{q}(t+dt/2)+\frac{d\vec{q}}{dt}(p(t+dt))dt/2
+    \end{aligned}
+    $$
     となる。
     """)
     return

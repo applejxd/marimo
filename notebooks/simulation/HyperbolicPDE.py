@@ -129,10 +129,12 @@ def _():
 def _():
     mo.md(r"""
     数値積分は連立1次方程式の形
-    $$\begin{aligned}
-        &\frac{∂u}{∂t}(x,t)≡v(x,t), \\
-        &\frac{∂v}{∂t}=c^2\frac{∂^2u}{∂x^2}
-    \end{aligned}$$
+    $$
+    \begin{aligned}
+    &\frac{∂u}{∂t}(x,t)≡v(x,t), \\
+    &\frac{∂v}{∂t}=c^2\frac{∂^2u}{∂x^2}
+    \end{aligned}
+    $$
     で解く.係数行列は
     $$
         \begin{pmatrix}

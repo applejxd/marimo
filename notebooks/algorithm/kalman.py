@@ -260,7 +260,7 @@ def _(mo):
     \begin{pmatrix}
     x_k \\ y_k
     \end{pmatrix}
-    + v_k,\quad
+    +v_k,\quad
     v_k\sim N(0,\sigma^2 I)
     $$
     """)
@@ -524,7 +524,8 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     シグマ点
-    $$\begin{aligned}
+    $$
+    \begin{aligned}
     &\vec{s}^0=\vec{\mu},\quad
     w_m^0=\frac{\lambda}{n+\lambda},\quad
     w_c^0=\frac{\lambda}{n+\lambda}+(1-\alpha^2+\beta), \\
@@ -534,7 +535,8 @@ def _(mo):
     i=1,2,\ldots,n\,\\
     &\kappa\leq0,\quad\alpha\in[0,1],\quad
     \lambda=\alpha^2(n+\kappa)-n,\quad\beta=2
-    \end{aligned}$$
+    \end{aligned}
+    $$
     """)
     return
 
@@ -990,14 +992,16 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     [二重振り子のラグランジアン](https://monologue-physics.hatenablog.com/entry/2021/09/22/155932)
-    $$\begin{aligned}
+    $$
+    \begin{aligned}
     L&=\frac{m_1}{2}(\dot{x_1}^2+\dot{y_1}^2)+\frac{m_2}{2}(\dot{x_2}^2+\dot{y_2}^2)-m_1gy_1-m_2gy_2 \\
     &=
     \frac{1}{2}(m_1+m_2)l_1^2\dot{\theta_1}^2
     +\frac{1}{2}m_2l_2^2\dot{\theta_2}^2
     +m_2l_1l_2\dot{\theta_1}\dot{\theta_2}\cos(\theta_1-\theta_2)
     +(m_1+m_2)gl_1\cos(\theta_1)+m_2gl_2\cos(\theta_2)
-    \end{aligned}$$
+    \end{aligned}
+    $$
     """)
     return
 
@@ -1067,7 +1071,8 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     簡便のため $m_1=m_2=l_1=l_2=1$ として次を得る。
-    $$\begin{aligned}
+    $$
+    \begin{aligned}
     &\dot{\vec{\theta}}
     =\frac{1}{2-\cos(\theta_1-\theta_2)}
     \begin{pmatrix}
@@ -1079,7 +1084,8 @@ def _(mo):
     -\sin(\theta_1-\theta_2)\dot{\theta_1}\dot{\theta_2}-2g\sin(\theta_1) \\
     \sin(\theta_1-\theta_2)\dot{\theta_1}\dot{\theta_2}-g\sin(\theta_2) \\
     \end{pmatrix}
-    \end{aligned}$$
+    \end{aligned}
+    $$
     """)
     return
 

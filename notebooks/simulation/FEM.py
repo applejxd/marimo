@@ -268,11 +268,13 @@ def _():
 def _():
     mo.md(r"""
     [First NGSolve example](https://docu.ngsolve.org/latest/i-tutorials/unit-1.1-poisson/poisson.html) に沿って正方領域のポアソン方程式を解く。
-    $$\begin{aligned}
-        &-\Delta u=f\quad\text{@バルク中},\\
-        &u=0\quad\text{@下辺および右辺},\\
-        &\frac{∂u}{∂n}=0\quad\text{@上辺および左辺}
-    \end{aligned}$$
+    $$
+    \begin{aligned}
+    &-\Delta u=f\quad\text{@バルク中},\\
+    &u=0\quad\text{@下辺および右辺},\\
+    &\frac{∂u}{∂n}=0\quad\text{@上辺および左辺}
+    \end{aligned}
+    $$
     """)
     return
 
