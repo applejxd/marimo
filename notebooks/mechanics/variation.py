@@ -31,10 +31,10 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     調和振動子の作用（汎関数）
-    \begin{equation}
+    $$
         S[q]
         =\int dt \left(\frac{1}{2}m\dot{q}(t)^2-\frac{1}{2}kq(t)^2\right)
-    \end{equation}
+    $$
     に対する変分原理を最適化問題として解く。
     """)
     return

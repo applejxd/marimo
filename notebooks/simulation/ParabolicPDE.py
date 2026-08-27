@@ -45,9 +45,9 @@ def _():
 def _():
     mo.md(r"""
     拡散方程式は
-    \begin{equation}
+    $$
         \frac{∂u}{∂t}=D\nabla^2u.
-    \end{equation}
+    $$
 
     まずは1次元の場合で、適切に規格化して$D=1$として解く.
     """)
@@ -76,15 +76,15 @@ def _():
 def _():
     mo.md(r"""
     中心差分では
-    \begin{equation}
+    $$
         \frac{∂^2u}{∂x^2}(x_i)
         \simeq \frac{1}{h^2}(u(x_{i+1})-2u(x_i)+u(x_{i-1})).
-    \end{equation}
+    $$
     境界条件は十分遠方では0となる想定で課す。
     今回はディリクレ境界条件で
-    \begin{equation}
+    $$
         u(x_0)=U(x_N)=0
-    \end{equation}
+    $$
     とする。
     いつでも適切に$u$を再定義することで、境界の値をこのように設定することができる。
 
@@ -114,9 +114,9 @@ def _():
     [数値解の不安定性より時間方向の刻み幅 $k$ は空間方向の刻み幅 $h$ に対して十分に小さく取る必要がある](http://www.nibb.ac.jp/miyakohp/asari/htdocs/?page_id=60)。
 
     具体的には
-    \begin{equation}
+    $$
         \frac{Dk}{h^2}\leq\frac{1}{2}.
-    \end{equation}
+    $$
     これは係数行列の最大固有値の絶対値が1以下になる条件である.
     """)
     return
@@ -214,9 +214,9 @@ def _():
 def _():
     mo.md(r"""
     バーガース方程式は以下:
-    \begin{equation}
+    $$
     \frac{∂u(x,t)}{∂t}=-u(x,t)\frac{∂u(x,t)}{∂x}+D\frac{∂^2u(x,t)}{∂x^2}.
-    \end{equation}
+    $$
 
     以下の条件で解く:
     - $D=0.01$
@@ -313,9 +313,9 @@ def _():
     mo.md(r"""
     [python で学ぶ計算物理](http://www.physics.okayama-u.ac.jp/~otsuki/lecture/CompPhys2/pde/kdv.html)から移植。典型的なパラメータの
 
-    \begin{equation}
+    $$
     \frac{∂u(x,t)}{∂t}+6u(x,t)\frac{∂u(x,t)}{∂x}+\frac{∂^3u(x,t)}{∂x^3}=0
-    \end{equation}
+    $$
 
     を数値的に解く。
     """)

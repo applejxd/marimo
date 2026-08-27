@@ -29,17 +29,17 @@ def _():
 def _():
     mo.md(r"""
     3次方程式
-    \begin{equation}
+    $$
     x^3+6x^2+21x+32=0
-    \end{equation}
+    $$
     の解は
-    \begin{equation}
+    $$
     x=-9^{1/3}+3^{1/3}-2,\ -9^{1/3}e^{i2\pi/3}+3^{1/3}e^{i4\pi/3}-2,\ -9^{1/3}e^{i4\pi/3}+3^{1/3}e^{i2\pi/3}-2
-    \end{equation}
+    $$
     または
-    \begin{equation}
+    $$
     x\sim-2.64,\ -1.68-3.05i,\ -1.68+3.05i
-    \end{equation}
+    $$
     """)
     return
 
@@ -159,13 +159,13 @@ def _():
 def _():
     mo.md(r"""
     はさみうち法では2分法のアレンジとして、交点を中点ではなく直線近似の解を用いる。
-    \begin{equation}
+    $$
     y(x)\equiv\frac{f(a)-f(b)}{a-b}(x-a)+f(a)
-    \end{equation}
+    $$
     とした場合の
-    \begin{equation}
+    $$
     y(c)=0 ⇔ c=-f(a)\frac{a-b}{f(a)-f(b)}+a=\frac{bf(a)-af(b)}{f(a)-f(b)}
-    \end{equation}
+    $$
     """)
     return
 
@@ -242,10 +242,10 @@ def _():
 def _():
     mo.md(r"""
     非線形関数の$x=a$周りのテーラー展開を用いて
-    \begin{equation}
+    $$
     f(x)=f(a)+f'(a)(x-a)+\mathcal{O}(\epsilon)=0
     ⇔x=a-\frac{f(a)}{f'(a)}+\mathcal{O}(\epsilon)
-    \end{equation}
+    $$
     と解を1次近似する。
     """)
     return
@@ -306,13 +306,13 @@ def _():
     mo.md(r"""
     割線法はニュートン法に対し、はさみうち法のような直線近似の解を用いる。
     逐次近似の直前2つの解$(x_0, f(x_0))$と$(x_1, f(x_1))$に対し
-    \begin{equation}
+    $$
     y(x)\equiv\frac{f(x_0)-f(x_1)}{x_0-x_1}(x-x_0)+f(x_0)
-    \end{equation}
+    $$
     とした場合の
-    \begin{equation}
+    $$
     y(x_2)=0 ⇔ x_2=-f(x_0)\frac{x_0-x_1}{f(x_0)-f(x_1)}+x_0=\frac{x_1f(x_0)-x_0f(x_1)}{f(x_0)-f(x_1)}
-    \end{equation}
+    $$
     を使用する。
     """)
     return

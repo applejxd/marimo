@@ -350,9 +350,9 @@ def _(mo):
     2. 1回の試行でのサンプル数を $n$ とすると、それらのサンプルが全て inlier である確率は $e^n$
     3. 一方で$N$回の試行で 2. が1回も生じない場合(RANSAC が失敗する場合)の確率は$(1-e^n)^N$
     4. つまり RANSAC をほぼ確実(確率$p\sim1$)で成功させたい場合は
-    \begin{equation}
+    $$
     1-p=(1-e^n)^N⇔N=\frac{\ln(1-p)}{\ln(1-e^n)}
-    \end{equation}
+    $$
     くらいの$N$に設定して反復する。
     4. 更に早期終了を目指す場合は、最大の inlier 数更新のタイミングで $e\sim$  (inlier とした数)/(データ数) として$N$を更新
     """)
@@ -1051,10 +1051,10 @@ def _(
 def _(mo):
     mo.md(r"""
     誤差共分散行列
-    \begin{equation}
+    $$
     V\equiv E[\delta a^T\delta a]
     =\frac{\chi^2}{n-m}(X^TX)^{-1}
-    \end{equation}
+    $$
     """)
     return
 

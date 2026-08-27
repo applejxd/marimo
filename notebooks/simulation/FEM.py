@@ -268,11 +268,11 @@ def _():
 def _():
     mo.md(r"""
     [First NGSolve example](https://docu.ngsolve.org/latest/i-tutorials/unit-1.1-poisson/poisson.html) に沿って正方領域のポアソン方程式を解く。
-    \begin{align}
+    $$\begin{aligned}
         &-\Delta u=f\quad\text{@バルク中},\\
         &u=0\quad\text{@下辺および右辺},\\
         &\frac{∂u}{∂n}=0\quad\text{@上辺および左辺}
-    \end{align}
+    \end{aligned}$$
     """)
     return
 
@@ -359,13 +359,13 @@ def _(fes, ngsolve):
 def _():
     mo.md(r"""
     ポアソン方程式の弱解は形状関数$v(\in H^1_0(S))$を用いて
-    \begin{equation}
-    \begin{split}
+    $$
+    \begin{aligned}
         &-Δu=f \Rightarrow∫(-Δ u)vdS=∫fvdS \\
         &\Leftrightarrow
         \oint_{∂S}\left(-\sum_i∂_iu\cdot v\right)dl^i+∫\sum_i∂_iu∂_ivdS=∫fvdS.
-    \end{split}
-    \end{equation}
+    \end{aligned}
+    $$
     ただし１つ目の表面項を0にするような形状関数$v$を選ぶ。
     """)
     return

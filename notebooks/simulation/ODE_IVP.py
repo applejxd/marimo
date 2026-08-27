@@ -29,31 +29,31 @@ def _():
 def _():
     mo.md(r"""
     万有引力が働く系
-    \begin{equation}
+    $$
         m\ddot{\vec{r}}=-G\frac{Mm}{r^2}\vec{e}_r
         \Leftrightarrow
         \ddot{\vec{r}}=-\frac{GM}{r^2}\vec{e}_r
-    \end{equation}
+    $$
     を考える。
     簡便のため $GM=1$ となるように単位系を取る。
     このとき系を直交座標系に書き換えると
-    \begin{equation}
+    $$
         \ddot{x}=-\frac{x}{(x^2+y^2)^{5/2}},\quad
         \ddot{y}=-\frac{y}{(x^2+y^2)^{5/2}}
-    \end{equation}
+    $$
     となる。
     更にハミルトン系へと書き換えると
-    \begin{align}
+    $$\begin{aligned}
         &\dot{q}_x=p_x,\quad
         \dot{p}_x=-\frac{q_x}{(q_x^2+q_y^2)^{3/2}},\\
         &\dot{q}_y=p_y,\quad
         \dot{p}_y=-\frac{q_y}{(q_x^2+q_y^2)^{3/2}}
-    \end{align}
+    \end{aligned}$$
     となる。
     エネルギーは運動の積分で
-    \begin{equation}
+    $$
         E=\frac{1}{2}(p_x^2+p_y^2)-\frac{1}{(q_x^2+q_y^2)^{1/2}}
-    \end{equation}
+    $$
     である。
     初期条件に $(q_x,q_y,p_x,p_y)=(1,0,0,1)$ を選ぶと
     $E = -1/2$ である。
@@ -106,10 +106,10 @@ def _():
 def _():
     mo.md(r"""
     オイラー法は単純な差分近似
-    \begin{equation}
+    $$
         \vec{x}(t+dt)
         \simeq\vec{x}(t)+\frac{d\vec{x}}{dt}(t,\vec{x}(t))dt
-    \end{equation}
+    $$
     """)
     return
 
@@ -194,16 +194,16 @@ def _():
 def _():
     mo.md(r"""
     ホイン法は次数 2 の 1 段階法。
-    \begin{equation}
+    $$
     \vec{k}_1\equiv\frac{d\vec{x}}{dt}(t,\vec{x}(t)),\quad
     \vec{k}_2\equiv\frac{d\vec{x}}{dt}\left(t+dt,\vec{x}(t)+\vec{k}_1dt\right)
-    \end{equation}
+    $$
     とすれば
-    \begin{equation}
+    $$
         \vec{x}(t+dt)
         \simeq\vec{x}(t)
         +(\vec{k}_1+\vec{k}_2)\frac{dt}{2}
-    \end{equation}
+    $$
     """)
     return
 
@@ -280,17 +280,17 @@ def _():
 def _():
     mo.md(r"""
     ルンゲ・クッタ法は次数 4 の 1 段階法。
-    \begin{align}
+    $$\begin{aligned}
         &\vec{k}_1\equiv\frac{d\vec{x}}{dt}\left(t,\vec{x}\right),\\
         &\vec{k}_2\equiv\frac{d\vec{x}}{dt}\left(t+\frac{dt}{2},\vec{x}+\vec{k}_1\frac{dt}{2}\right),\\
         &\vec{k}_3\equiv\frac{d\vec{x}}{dt}\left(t+\frac{dt}{2},\vec{x}+\vec{k}_2\frac{dt}{2}\right),\\
         &\vec{k}_4\equiv\frac{d\vec{x}}{dt}\left(t+dt,\vec{x}+\vec{k}_3dt\right),
-    \end{align}
+    \end{aligned}$$
     として
-    \begin{equation}
+    $$
         \vec{x}(t+dt)
         \simeq\vec{x}(t)+(\vec{k}_1+2\vec{k}_2+2\vec{k}_3+\vec{k}_4)\frac{dt}{6}
-    \end{equation}
+    $$
     """)
     return
 
@@ -385,10 +385,10 @@ def _():
 def _():
     mo.md(r"""
     アダムス・バッシュフォース法は補外による陽的線形多段法。4次の公式は
-    \begin{equation}
+    $$
         \vec{x}(t+dt)
         \simeq \vec{x}(t)+\left(-\frac{9}{24}\vec{x}'(t-3dt)+\frac{37}{24}\vec{x}'(t-2dt)-\frac{59}{24}\vec{x}'(t-dt)+\frac{55}{24}\vec{x}'(t)\right)dt
-    \end{equation}
+    $$
     """)
     return
 
@@ -482,10 +482,10 @@ def _():
 def _():
     mo.md(r"""
     アダムス・ムルトン法は補間による陰的線形多段法。4次の公式は
-    \begin{equation}
+    $$
         \vec{x}(t+dt)
         \simeq \vec{x}(t)+\left(\frac{1}{24}\vec{x}'(t-2dt)-\frac{5}{24}\vec{x}'(t-dt)-\frac{19}{24}\vec{x}'(t)+\frac{9}{24}\vec{x}'(t+dt)\right)dt.
-    \end{equation}
+    $$
     """)
     return
 
@@ -619,16 +619,16 @@ def _():
 def _():
     mo.md(r"""
     リープ・フロッグ法は中点差分による2段階法で2次のシンプレクティック数値積分。
-    \begin{align}
+    $$\begin{aligned}
         &\vec{q}(t+2dt)\simeq\vec{q}(t)+\vec{p}(t+dt)\cdot2dt,\\
         &\vec{p}(t+2dt)\simeq\vec{p}(t)+\frac{d\vec{p}}{dt}(t+dt)\cdot2dt
-    \end{align}
+    \end{aligned}$$
     分離可能なハミルトン系では
-    \begin{align}
+    $$\begin{aligned}
         &\vec{q}(t+dt/2)\simeq\vec{q}(t)+\frac{d\vec{q}}{dt}(p(t))dt/2,\\
         &\vec{p}(t+dt)\simeq\vec{p}(t)+\frac{d\vec{p}}{dt}(q(t+dt/2))dt,\\
         &\vec{q}(t+dt)\simeq\vec{q}(t+dt/2)+\frac{d\vec{q}}{dt}(p(t+dt))dt/2
-    \end{align}
+    \end{aligned}$$
     となる。
     """)
     return

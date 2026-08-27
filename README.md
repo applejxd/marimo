@@ -38,6 +38,7 @@ uv run --all-groups marimo run notebooks/algorithm/GradientDescent.py
 uv run python scripts/check_migration.py
 uv run ruff check .
 uv run marimo check --strict notebooks
+uv run python scripts/check_math.py
 uv run python scripts/check_site.py
 ```
 

@@ -104,12 +104,12 @@ def _():
     $\log \sigma^2$ を推定し、decoder は2次元の潜在変数を784個の画素 logit へ戻します。
     潜在変数は再パラメータ化 trick
 
-    \[
+    $$
     q_\phi(z\mid x)=\mathcal{N}\!\left(\mu_\phi(x),
     \operatorname{diag}(\sigma_\phi^2(x))\right),\qquad
     z=\mu_\phi(x)+\sigma_\phi(x)\odot\epsilon,\quad
     \epsilon\sim\mathcal{N}(0,I)
-    \]
+    $$
 
     で sampling します。これにより sampling を含む処理でも encoder へ勾配を伝播できます。
     """)
@@ -169,17 +169,17 @@ def _():
     最小化する negative ELBO は、画素の再構成誤差と潜在分布を標準正規分布へ近づける
     KL divergence の和です。
 
-    \[
+    $$
     \mathcal{L}
       = \operatorname{BCE}(x,\hat{x})
       + D_{\mathrm{KL}}\!\left(q_\phi(z\mid x)\,\|\,\mathcal{N}(0,I)\right)
-    \]
+    $$
 
-    \[
+    $$
     D_{\mathrm{KL}}
       = -\frac{1}{2}\sum_j
         \left(1+\log\sigma_j^2-\mu_j^2-\sigma_j^2\right)
-    \]
+    $$
 
     BCE と KL は batch 内で加算し、履歴では dataset 件数で割った1画像あたりの値を表示します。
     Adam（learning rate `1e-3`）で8 epoch 学習し、各 epoch 後に test loss を計算します。
@@ -389,9 +389,9 @@ def _():
     0〜9 の入力画像、中段はその潜在表現を VAE で再構成した画像です。下段では数字 1 の
     重心から数字 7 の重心までを直線補間し、潜在空間上で形が連続的に変化する様子を示します。
 
-    \[
+    $$
     z(t)=(1-t)z_1+t z_7,\qquad 0\leq t\leq 1
-    \]
+    $$
     """)
     return
 

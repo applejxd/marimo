@@ -21,10 +21,10 @@ def _():
 def _():
     mo.md(r"""
     数値積分法の精度を円周率の計算
-    \begin{equation}
+    $$
         I\equiv\int_a^b dx f(x)
         =\int_{0}^1dx\frac{4}{1+x^2}=\pi
-    \end{equation}
+    $$
     で比較する。
     """)
     return
@@ -42,10 +42,10 @@ def _():
 def _():
     mo.md(r"""
     台形公式は積分を単純な差分で表したもので
-    \begin{equation}
+    $$
     I\simeq\frac{\Delta x}{2}\left(f(x_0)+2\sum_{k=1}^{n-1}f(x_k)+f(x_n)\right),\quad
     \Delta x\equiv\frac{x_n - x_0}{n},\quad x_k\equiv x_0 + k\Delta x
-    \end{equation}
+    $$
     である。
     """)
     return
@@ -93,11 +93,11 @@ def _():
 def _():
     mo.md(r"""
     シンプソン公式は 2 次のニュートン・コーツ公式（2 次のラグランジュ補間による積分）で
-    \begin{equation}
+    $$
     I\simeq\frac{\Delta x}{3}\left(f(x_0)+4\sum_{k=1,3,\cdots}^{2n-1}f(x_k)+2\sum_{k=2,4,\cdots}^{2n-2}f(x_k)+f(x_{2n})\right),\quad
     \Delta x\equiv\frac{x_{2n}-x_0}{2n},\quad
     x_k\equiv x_0 + k\Delta x
-    \end{equation}
+    $$
     となる。
     """)
     return
@@ -137,21 +137,21 @@ def _():
     mo.md(r"""
     ロンバーグ法は収束値が真の積分値であるような収束列を用いて、補外を行うことで積分値を求めるアルゴリズムである。
     このような収束列を台形公式によって
-    \begin{equation}
-    \begin{split}
+    $$
+    \begin{aligned}
     &T_0^n\equiv\frac{\Delta x}{2}\left(f(x_0)+2\sum_{k=1}^{2^n-1}f(x_k)+f(x_{2^n})\right)\overset{n\rightarrow\infty}{\rightarrow}I,\\
     &\Delta x\equiv\frac{x_{2^n}-x_0}{2^n},\quad x_k\equiv k\Delta x
-    \end{split}
-    \end{equation}
+    \end{aligned}
+    $$
     のように作る。
     上の添字は分割数の添字であり、下の添字は補外回数の添字である。
     ロンバーグ法は各 $T^n_0$ に対して
-    \begin{equation}
+    $$
     T^{n+1}_m \equiv\frac{4^m T^{n+1}_{m-1} - T^n_{m-1}}{4^m-1}
-    \end{equation}
+    $$
     を計算する。
     計算は
-    \begin{equation}
+    $$
     T_0^0\overset{\text{分割}}{\rightarrow}
     T_1^0\overset{\text{補外}}{\rightarrow}
     T_1^1\overset{\text{分割}}{\rightarrow}
@@ -159,7 +159,7 @@ def _():
     T_2^1\overset{\text{補外}}{\rightarrow}
     T_2^2\overset{\text{分割}}{\rightarrow}
     \cdots
-    \end{equation}
+    $$
     の順に行い更新幅が一定以下になるまで行う。
     """)
     return
@@ -209,17 +209,17 @@ def _():
 def _():
     mo.md(r"""
     ガウス・ルジャンドル積分はルジャンドル多項式のゼロ点
-    \begin{equation}
+    $$
     x_1\leq x_2\leq\cdots\leq x_k\leq\cdots\leq x_N\quad
     \text{s.t.}\quad P_N(x_k)=0
-    \end{equation}
+    $$
     を利用する。
     ルジャンドル多項式はボネの漸化式
-    \begin{equation}
+    $$
     P_0(x)=1,\quad
     P_1(x)=x,\quad
     (n+1)P_{n+1}(x)=(2n+1)xP_n(x)-nP_{n-1}(x)
-    \end{equation}
+    $$
     によって生成される。
     """)
     return
@@ -303,18 +303,18 @@ def _(Callable, legendre):
 def _():
     mo.md(r"""
     $n$ 次ルジャンドル関数の正のゼロ点 $x_k$ は
-    \begin{equation}
-    \begin{split}
+    $$
+    \begin{aligned}
     &n=2m\quad\text{($n$ is even)}\\
     &n=2m+1\quad\text{($n$ is odd)}
-    \end{split}
-    \end{equation}
+    \end{aligned}
+    $$
     とすると
-    \begin{equation}
+    $$
     \sin\left(\frac{n-1-2k}{2n+1}\pi\right)
     < x_k <
     \sin\left(\frac{n+1-2k}{2n+1}\pi\right)
-    \end{equation}
+    $$
     にある。
     また$-x_k$もゼロ点であることが知られている。
     $n$ が奇数の場合は $x=0$ もゼロ点になる。
@@ -361,11 +361,11 @@ def _(bisection, legendre, np):
 def _():
     mo.md(r"""
     差分近似
-    \begin{equation}
+    $$
     I\equiv\int_{-1}^1dx \tilde{f}(x)
     \simeq\sum_{k=1}^N w_k \tilde{f}(x_k),\quad
     w_k\equiv 2\left[\sum_{l=0}^{N-1}(2l+1)\left[P_l(x_k)\right]^2\right]^{-1}
-    \end{equation}
+    $$
     の係数を計算する。
     """)
     return
@@ -391,11 +391,11 @@ def _(legendre, legendre_zeros):
 def _():
     mo.md(r"""
     積分を変形
-    \begin{equation}
+    $$
         I=\int_{0}^1dx\frac{4}{1+x^2}
         =\frac{1}{2}\int_{-1}^1dx\frac{4}{1+x^2}
         =\pi
-    \end{equation}
+    $$
     してガウス・ルジャンドル積分を実施。
     """)
     return

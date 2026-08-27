@@ -255,10 +255,10 @@ def _(mo):
     QR 法の収束速度は近似固有値と最小固有値の比で決定されるため、
     最小固有値を小さくすると収束が早くなる。
     そこで最小固有値（の近似値）を$\mu_k$として
-    \begin{equation}
+    $$
     A_k-\mu_k I=Q_kR_k,\quad
     A_{k+1}=R_kQ_k+\mu_kI
-    \end{equation}
+    $$
     と反復する。
 
     ウィルキンソンの移動法は$A_k$右下隅の2x2小行列の固有値のうち、
@@ -339,10 +339,10 @@ def _(mo):
     逆反復法は近似固有値$\lambda'$に対する$((A-\lambda'E)^{-1})^\infty$を固有ベクトルとして計算する方法。
 
     計算の過程でレイリー商による計算
-    \begin{equation}
+    $$
     R(\vec{x}^{(k)})=\frac{(\vec{x}^{(k)},(A-\lambda'E)^{-1}\vec{x}^{(k)})}{(\vec{x}^{(k)},\vec{x}^{(k)})}
     =\frac{1}{\lambda-\lambda'}\equiv\mu
-    \end{equation}
+    $$
     で固有値の高精度化が図れる。
     """)
     return

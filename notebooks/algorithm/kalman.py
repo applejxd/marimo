@@ -47,7 +47,7 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     円運動モデル
-    \begin{equation}
+    $$
     \begin{pmatrix}
     x \\ y
     \end{pmatrix}
@@ -56,7 +56,7 @@ def _(mo):
     \cos\theta \\
     \sin\theta
     \end{pmatrix}
-    \end{equation}
+    $$
     """)
     return
 
@@ -194,7 +194,7 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     今回の EKF での運動モデルの近似式は次の通り。
-    \begin{equation}
+    $$
     \begin{pmatrix}
     x_{k+1} \\ y_{k+1}
     \end{pmatrix}
@@ -220,7 +220,7 @@ def _(mo):
      \sin\theta_0\delta\theta^2
     \end{pmatrix}
     +\mathcal{O}(\delta\theta^3)
-    \end{equation}
+    $$
     """)
     return
 
@@ -229,7 +229,7 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     誤差絶対値の上限値を用いて次の近似をする。
-    \begin{equation}
+    $$
     \begin{pmatrix}
     x_{k+1} \\ y_{k+1}
     \end{pmatrix}
@@ -243,7 +243,7 @@ def _(mo):
     \end{pmatrix}
     +w_k,\quad
     w_k\sim N\left(0,\frac{1}{2}\delta\theta^2I\right)
-    \end{equation}
+    $$
     """)
     return
 
@@ -252,7 +252,7 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     観測モデルは$(x,y)$変数の多変量正規分布とする。
-    \begin{equation}
+    $$
     \begin{pmatrix}
     x_k' \\ y_k'
     \end{pmatrix}
@@ -262,7 +262,7 @@ def _(mo):
     \end{pmatrix}
     + v_k,\quad
     v_k\sim N(0,\sigma^2 I)
-    \end{equation}
+    $$
     """)
     return
 
@@ -524,7 +524,7 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     シグマ点
-    \begin{align}
+    $$\begin{aligned}
     &\vec{s}^0=\vec{\mu},\quad
     w_m^0=\frac{\lambda}{n+\lambda},\quad
     w_c^0=\frac{\lambda}{n+\lambda}+(1-\alpha^2+\beta), \\
@@ -534,7 +534,7 @@ def _(mo):
     i=1,2,\ldots,n\,\\
     &\kappa\leq0,\quad\alpha\in[0,1],\quad
     \lambda=\alpha^2(n+\kappa)-n,\quad\beta=2
-    \end{align}
+    \end{aligned}$$
     """)
     return
 
@@ -990,14 +990,14 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     [二重振り子のラグランジアン](https://monologue-physics.hatenablog.com/entry/2021/09/22/155932)
-    \begin{align}
+    $$\begin{aligned}
     L&=\frac{m_1}{2}(\dot{x_1}^2+\dot{y_1}^2)+\frac{m_2}{2}(\dot{x_2}^2+\dot{y_2}^2)-m_1gy_1-m_2gy_2 \\
     &=
     \frac{1}{2}(m_1+m_2)l_1^2\dot{\theta_1}^2
     +\frac{1}{2}m_2l_2^2\dot{\theta_2}^2
     +m_2l_1l_2\dot{\theta_1}\dot{\theta_2}\cos(\theta_1-\theta_2)
     +(m_1+m_2)gl_1\cos(\theta_1)+m_2gl_2\cos(\theta_2)
-    \end{align}
+    \end{aligned}$$
     """)
     return
 
@@ -1006,9 +1006,9 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     $\theta_1$ についてのラグランジュ方程式
-    \begin{equation}
+    $$
     (m_1+m_2)l_1^2\ddot{\theta_1}+(m_1+m_2)gl_1\sin(\theta_1)+m_2l_1l_2\left(\ddot{\theta_2}\cos(\theta_1-\theta_2)+\dot{\theta_2}^2\sin(\theta_1-\theta_2)\right)=0
-    \end{equation}
+    $$
     """)
     return
 
@@ -1017,9 +1017,9 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     $\theta_2$ についてのラグランジュ方程式
-    \begin{equation}
+    $$
     m_2l_2^2\ddot{\theta_2}+m_2l_1l_2\left(\ddot{\theta_1}\cos(\theta_1-\theta_2)-\dot{\theta_1}^2\sin(\theta_1-\theta_2)\right)+m_2gl_2\sin(\theta_2)=0
-    \end{equation}
+    $$
     """)
     return
 
@@ -1036,14 +1036,14 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     $\vec{\theta}\equiv(\theta_1, \theta_2)^T$ に対する正準方程式
-    \begin{equation}
+    $$
     \dot{\vec{\theta}}
     =\frac{1}{(m_1+m_2)l_1^2m_2l_2^2-m_2^2l_1^2l_2^2\cos(\theta_1-\theta_2)}
     \begin{pmatrix}
     m_2l_2^2p_1-m_2l_1l_2\cos(\theta_1-\theta_2)p_2 \\
     -m_2l_1l_2\cos(\theta_1-\theta_2)+(m_1+m_2)l_1^2p_2
     \end{pmatrix}
-    \end{equation}
+    $$
     """)
     return
 
@@ -1052,13 +1052,13 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     $\vec{p}\equiv(p_1,p_2)^T$に対する正準方程式
-    \begin{equation}
+    $$
     \dot{\vec{p}}=
     \begin{pmatrix}
     -m_2l_1l_2\sin(\theta_1-\theta_2)\dot{\theta_1}\dot{\theta_2}-(m_1+m_2)gl_1\sin(\theta_1) \\
     m_2l_1l_2\sin(\theta_1-\theta_2)\dot{\theta_1}\dot{\theta_2}-m_2gl_2\sin(\theta_2) \\
     \end{pmatrix}
-    \end{equation}
+    $$
     """)
     return
 
@@ -1067,7 +1067,7 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     簡便のため $m_1=m_2=l_1=l_2=1$ として次を得る。
-    \begin{align}
+    $$\begin{aligned}
     &\dot{\vec{\theta}}
     =\frac{1}{2-\cos(\theta_1-\theta_2)}
     \begin{pmatrix}
@@ -1079,7 +1079,7 @@ def _(mo):
     -\sin(\theta_1-\theta_2)\dot{\theta_1}\dot{\theta_2}-2g\sin(\theta_1) \\
     \sin(\theta_1-\theta_2)\dot{\theta_1}\dot{\theta_2}-g\sin(\theta_2) \\
     \end{pmatrix}
-    \end{align}
+    \end{aligned}$$
     """)
     return
 

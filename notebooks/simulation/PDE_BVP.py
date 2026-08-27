@@ -63,24 +63,24 @@ def _():
 def _():
     mo.md(r"""
     シュレディンガー方程式は
-    \begin{equation}
+    $$
       \left(-\frac{\hbar^2}{2m}\nabla^2+U(x)\right) \psi(x) = E \psi(x)
-    \end{equation}
+    $$
     である。
     1次元の場合に適切に無次元化すると
-    \begin{equation}
+    $$
       \left(-\frac{d^2}{dx^2}+U(x)\right)\psi(x)=E\psi
-    \end{equation}
+    $$
     となる。
     ハミルトニアンに含まれる2階微分の単純な差分表示は
-    \begin{equation}
-    \begin{split}
+    $$
+    \begin{aligned}
       &\left.\frac{d^2}{dx^2}\psi(x)\right|_{x=x_i}
       \sim\left.\frac{d}{dx}\frac{\psi(x+a/2)-\psi(x-a/2)}{a}\right|_{x=x_i} \\
       &\sim\left.\frac{d}{dx}\frac{\psi(x+a/2)-\psi(x-a/2)}{a}\right|_{x=x_i} \\
       &\sim\frac{\psi(x_i+a)-2\psi(x_i)+\psi(x_i-a)}{a^2}
-    \end{split}
-    \end{equation}
+    \end{aligned}
+    $$
     となる。
     これはいわゆるハミルトニアンの行列表示である。
     """)
@@ -140,16 +140,16 @@ def _():
 def _():
     mo.md(r"""
     状況は[こちら](https://takun-physics.net/10186/)と同じ。
-    \begin{equation}
+    $$
     \left(\frac{\partial^2}{\partial x^2}+\frac{\partial^2}{\partial y^2}\right)
     p(x,y)=b(x,y)
-    \end{equation}
+    $$
     を解く。
 
     グリッドは$N_x×N_y$にとって
-    \begin{equation}
+    $$
     p(x_0+i\Delta x, y_0+j\Delta y)≡p(x_i,y_j)≡p_{ij}\equiv p_{i+j×N_x}
-    \end{equation}
+    $$
     と差分化した未知変数をベクトル形式にする。
     シュレディンガー方程式の場合と同様に差分を実施する。
     """)

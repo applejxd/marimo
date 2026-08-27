@@ -515,9 +515,9 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     反復の漸化式は
-    \begin{equation}
+    $$
     \vec{x}^{(k+1)}=D^{-1}(\vec{b}-(L+U)\vec{x}^{(k)})
-    \end{equation}
+    $$
     """)
     return
 
@@ -567,9 +567,9 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     反復の漸化式は
-    \begin{equation}
+    $$
     \vec{x}^{(k+1)}=D^{-1}(\vec{b}-L\vec{x}^{(k+1)}-U\vec{x}^{(k)}).
-    \end{equation}
+    $$
     $L$は下三角なので$x_i^{(k+1)}$の計算で$x_{0,...,i-1}^{(k+1)}$を使用することになる。
     """)
     return
@@ -623,9 +623,9 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     反復の漸化式は
-    \begin{equation}
+    $$
     \vec{x}^{(k+1)}=(1-\omega)\vec{x}^{(k)}+\omega D^{-1}(\vec{b}-L\vec{x}^{(k+1)}-U\vec{x}^{(k)}).
-    \end{equation}
+    $$
     $L$は下三角なので$x_i^{(k+1)}$の計算で$x_{0,...,i-1}^{(k+1)}$を使用することになる。
 
     $\omega=1$でガウス・ザイデル法と一致する。
@@ -712,11 +712,11 @@ def _(np, plt, sns):
 def _(mo):
     mo.md(r"""
     共役勾配法は対称正定値行列$A$に対して2次形式の最適化問題
-    \begin{equation}
+    $$
     \min_{\vec{x}}f(\vec{x})
     \equiv
     \min_{\vec{x}}\left(\frac{1}{2}(\vec{x},A\vec{x})-(\vec{x},\vec{b})\right)
-    \end{equation}
+    $$
     に変形して適用。
 
     A が対称正定値でなければ $A^TA$ を $A$ として処理する。
@@ -728,9 +728,9 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     暫定解$\vec{x}_k$に対し探索方向$\vec{p}_k$で$f(\vec{x})$が最小になる点は$\vec{r}_k\equiv\vec{b}-A\vec{x}_k$として
-    \begin{equation}
+    $$
     \vec{x}_{k+1}=\vec{x}_k+\frac{(\vec{p}_k,\vec{r}_k)}{(\vec{p}_k,A\vec{p}_k)}\vec{p}_k.
-    \end{equation}
+    $$
     """)
     return
 

@@ -45,9 +45,9 @@ def _():
 def _():
     mo.md(r"""
     波動方程式
-    \begin{equation}
+    $$
         \frac{∂^2u}{∂t^2}=c^2\frac{∂^2u}{∂x^2}
-    \end{equation}
+    $$
     を解く。条件は
     - $c=1$
     - $x\in[0,1]$,
@@ -56,9 +56,9 @@ def _():
 
     ただし数値不安定性を避けるために、
     時間方向の刻み幅$k$は空間方向の刻み幅$h$に対して
-    \begin{equation}
+    $$
         k\leq\frac{h}{c}
-    \end{equation}
+    $$
     を満たすように選ぶ (CFL 条件)。
     """)
     return
@@ -88,17 +88,17 @@ def _():
 def _():
     mo.md(r"""
     初期条件は
-    \begin{equation}
+    $$
         u(x,0)=
         \begin{cases}
             &\dfrac{1}{2}\cos(8\pi(x-1/2))+\dfrac{1}{2}\quad(3/8\leq x\leq5/8), \\
             &0\quad(\text{otherwise}),
         \end{cases}
-    \end{equation}
+    $$
     および
-    \begin{equation}
+    $$
         \frac{∂u}{∂t}(x,0)=0
-    \end{equation}
+    $$
     とする.
     """)
     return
@@ -129,12 +129,12 @@ def _():
 def _():
     mo.md(r"""
     数値積分は連立1次方程式の形
-    \begin{align}
+    $$\begin{aligned}
         &\frac{∂u}{∂t}(x,t)≡v(x,t), \\
         &\frac{∂v}{∂t}=c^2\frac{∂^2u}{∂x^2}
-    \end{align}
+    \end{aligned}$$
     で解く.係数行列は
-    \begin{equation}
+    $$
         \begin{pmatrix}
             ∂_tu \\ ∂_tv
         \end{pmatrix}
@@ -145,7 +145,7 @@ def _():
         \begin{pmatrix}
             u \\ v
         \end{pmatrix}
-    \end{equation}
+    $$
     の差分化である。
     """)
     return

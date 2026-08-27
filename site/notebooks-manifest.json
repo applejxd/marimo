@@ -2,23 +2,23 @@
   "notebooks": {
     "algorithm/AutomaticDerivative.py": {
       "html": "algorithm/AutomaticDerivative.html",
-      "html_sha256": "6302d888553cb9b562a1086f3f2db58c7ec1114d024b075ac3a8cb587acd2bd6",
-      "source_sha256": "c7ed5b89d66930f2c922e7cd516e0924289a97e887e9add96e1579c4da6aefc9"
+      "html_sha256": "b79e05a11a73e461844e4f7c4e57056b9e029b135a2856ce086f993008e0b0ee",
+      "source_sha256": "2fd822342cabbdbe34087ce65ffc69cee7c1dc2fc4382f84b1cfe7315cb74e54"
     },
     "algorithm/GradientDescent.py": {
       "html": "algorithm/GradientDescent.html",
-      "html_sha256": "cd2c51aea1c70194476116e56737cd698cc9d5d63ec4fe3a73008f3c12d8dbfd",
-      "source_sha256": "2546fa1eb5d3ba8e350b8cbda7a0fadcdf6949373a0bbf2918487d4480d9f98c"
+      "html_sha256": "a14b9d3e115facc870ed0e20a62a2a41f4efa96b75eef4ab86ba2cdc2d65b059",
+      "source_sha256": "13f6a3f805c46bc80680a32f86f379c71f27de12626918537f56aefac0515fd3"
     },
     "algorithm/fitting.py": {
       "html": "algorithm/fitting.html",
-      "html_sha256": "24a16c530876c59e788378b9a5d0223ba4a4be45fd235500e3b3b99c1d376acf",
-      "source_sha256": "0635693357c6dd876fb2a0f58089efea0b3c564183fece984acb2696b0d3762f"
+      "html_sha256": "bad68354eb9e1e05fdea4505e4aa387f4373ee94102d3057652eea2fb4a9578a",
+      "source_sha256": "ed02a9c08bc8d07a5b502e11e66b1eedd0688875df8ded9f3379a9c8e638267d"
     },
     "algorithm/kalman.py": {
       "html": "algorithm/kalman.html",
-      "html_sha256": "bd109e7fe40a829bfd1f0f85e812d3d0fbb77f78d2a55d8b8c42ea0cb6f1ed34",
-      "source_sha256": "4ff2ac8cb451648a96eb8c8abd3b0d6da285d7bf40cfc9ee07f43de2f4ea09e9"
+      "html_sha256": "8ca457c4d551dced06eaba1c65ebb1234dc6081664153f0c9cef6a11f1590a2f",
+      "source_sha256": "d97a0c9b4151548d7b207e8aaa7a2687b6b0d1e219750efbaa568d7d3ed2bf93"
     },
     "algorithm/kdtree.py": {
       "html": "algorithm/kdtree.html",
@@ -27,13 +27,13 @@
     },
     "algorithm/linalg_eig.py": {
       "html": "algorithm/linalg_eig.html",
-      "html_sha256": "17afb53babd8c65904af8924469a60c1e832ef40624584e19da212120eb8795f",
-      "source_sha256": "fac23bd886a4e324d01f3aadaca3416d40cba15a34072d863a1e4c690090ecaf"
+      "html_sha256": "fefe470fd0fa672b6cfdb6915f93b39f6ad6e2de40993f1cbe23d841a3db8444",
+      "source_sha256": "a9d958e7bfd1a60cf08d12500f273621db03e6a9866742e1c7d2942e393e1c92"
     },
     "algorithm/linalg_inv.py": {
       "html": "algorithm/linalg_inv.html",
-      "html_sha256": "7154c34f45132807afbbdcdc7bd3ce55c56fdb68bd4ca1b4ab692e8bf89e745e",
-      "source_sha256": "fe2e048b9d8542683024b9a1db6ad3992ac1f2fef14a1669fae0d9bdf36261d3"
+      "html_sha256": "8ab9456c7378122ee28f2e403277456cce626dc2118ea4dfdfc6aaba0282ddbc",
+      "source_sha256": "f5c916bf9676d0c3749f96bac3d9d4edffad044d9890f08a4cdbfa0eb6b34a24"
     },
     "algorithm/mining.py": {
       "html": "algorithm/mining.html",
@@ -57,8 +57,8 @@
     },
     "mechanics/variation.py": {
       "html": "mechanics/variation.html",
-      "html_sha256": "c9c8ce3100806078e36373b059be3e1df81e874582b3fd2c7935743ee2b1f367",
-      "source_sha256": "76a2179da5910bd225f0728ea4507283e45172f0866547fda44501eb48e3d3de"
+      "html_sha256": "60ae4f848ce2e6750c77b30e789d1525d410509811b505b2750920fde2ac5267",
+      "source_sha256": "9e2cac597f53e949a790d007fdd841dca7e689b5882541b0fcee649c5e13d703"
     },
     "ml/LightGBM.py": {
       "html": "ml/LightGBM.html",
@@ -112,8 +112,8 @@
     },
     "ml/torch/mnist_vae.py": {
       "html": "ml/torch/mnist_vae.html",
-      "html_sha256": "c8051e22a1a64fcab4cd09ddc2bc2a4e6d4b18b2716e0bc2acf0849e3df2a552",
-      "source_sha256": "210c7472a8cc5b869cc42fb3a6e241cf423462e0c7fd9c4ab5380dcaab0a34ff"
+      "html_sha256": "8727acfc3a2690d343218505d198d032161faf4cc9941ade5ac3198b2ea48686",
+      "source_sha256": "02b36f93a51b4b4c7925359a2bfe21366680122b8fe9877b71cc58ea24456a20"
     },
     "ml/winograd.py": {
       "html": "ml/winograd.html",
@@ -152,43 +152,43 @@
     },
     "simulation/FEM.py": {
       "html": "simulation/FEM.html",
-      "html_sha256": "914febb14653c7a88a1883b8bb17f67175242c4e09ef5b1bfa08006149b31ee9",
-      "source_sha256": "434df69450df35fbfa4b87bfbdb737032af3749a599dc4d3e63c5a6737b3753f"
+      "html_sha256": "1f0e1c50c26b8cf4cb8b7c4335aa14391db6aff119a21e4f2e4bedd357451be1",
+      "source_sha256": "3f8d229b9550eeebfb64202922584cb4785f5dc7582d9fd5eea83b536f3a946f"
     },
     "simulation/HyperbolicPDE.py": {
       "html": "simulation/HyperbolicPDE.html",
-      "html_sha256": "65b45febc2eb59e0de9e60ba2bbb1056212c8438b33931f1bc5949f0d104bbc7",
-      "source_sha256": "2d66273b1f135934e469724d8cfeccdde614db4b69145e5a91e1734d959689c2"
+      "html_sha256": "94cd887b7c04e917e4def47292ce8b57897266c1316cb5c96e3b95ee59ffd392",
+      "source_sha256": "141c637b0c505488adb4812d905bd90d084a838be5de7c807a2e756417c61433"
     },
     "simulation/Integration.py": {
       "html": "simulation/Integration.html",
-      "html_sha256": "007fd93a0c2c7a045166be15273a37e231aad40c436649ca0d163e1367e66387",
-      "source_sha256": "890342725342c077935fef4d70f6b11770811ff6f0a1a60a82d230f8cf2c609e"
+      "html_sha256": "a39436e1f8e75e4de2be0ed703765dcb4ce34a568062c3e098c4141b366b73cf",
+      "source_sha256": "8ea7a530795cfece639e257212a27a760cbdc81aeb0c6e75efc8db70f955643e"
     },
     "simulation/NonLinear.py": {
       "html": "simulation/NonLinear.html",
-      "html_sha256": "3528d4deeb287e033f0384243f1c55be93ef8b5dd1a89b265626dcc6dc402a79",
-      "source_sha256": "1235737eef4dc73506db09388f9d5ceec73a3a10ac7715f881b9567388cb72ed"
+      "html_sha256": "f449604d19b6ba0e18cc6f7b7a7ff3da2e3ef49eee06089667c4b510cafbc933",
+      "source_sha256": "fe755e9b8521d14786763b33045d68d6d139fe2fcf972fb708a994e93de963cc"
     },
     "simulation/ODE_IVP.py": {
       "html": "simulation/ODE_IVP.html",
-      "html_sha256": "58230532eaf67b7ec59ca7096ccaf801e5c811d124089d0068715db1c3094805",
-      "source_sha256": "f70b202002af78fa18dede5ee289fa56f8586632fde4dc75988d92d5e2094e57"
+      "html_sha256": "67b650695f4e60d0492a869039891e7227cc4a3b6dab3bc03d0b3baf62f44749",
+      "source_sha256": "8bbefc2e0f783fd21a6ddfa7902cc7e675a8d8dda66cb22a80b7169f774dbafa"
     },
     "simulation/ODEtest.py": {
       "html": "simulation/ODEtest.html",
-      "html_sha256": "68b88b5f2a7af34d5ade4e2e634c7f544f0c7ccdc8a6a2b2eac9c1e6df944a59",
-      "source_sha256": "e1346d1c4ddb1bd66d5173c42feefa197e719f7f3717bf846f6bc93612054dde"
+      "html_sha256": "9e14acf61d2a67bc7dbc4b412a64e632059a4c1fb1d926afcb0d5d64a31e252e",
+      "source_sha256": "da6d38169f4ecefb366dcd299e4a60a193216f6fe90a7789c024a5ce1d75f5cd"
     },
     "simulation/PDE_BVP.py": {
       "html": "simulation/PDE_BVP.html",
-      "html_sha256": "f59285dbfef2ffbede49e2f4421c3fae24a3ec5032f6da274f03b9600455a7c3",
-      "source_sha256": "be09d90dea636559d1c5973b90bb320ac29e736b5a391513c8c245b6407bf662"
+      "html_sha256": "2d9d4ab8870b18ca30495d52a2caa099457b880d700bf3086edf022496348f81",
+      "source_sha256": "9040ead80a8d908e4fcbe8875bc793b81df76489610529667de6c123394e8b79"
     },
     "simulation/ParabolicPDE.py": {
       "html": "simulation/ParabolicPDE.html",
-      "html_sha256": "79ba3454dc11dc14e6891679b7049d9158f7da2e2d21eafc893897f98cd8628c",
-      "source_sha256": "5335790945136af71d31b171b74d839c7c5baca7336df32b8bdccc9295df8272"
+      "html_sha256": "82a1e28a38c4d452c659636b790b9fab924583957679e7f70a7e64537b46568c",
+      "source_sha256": "8d736df42c7d9f3d7bb3d45ee70c417839605160cbb3878a507e91a096bf8951"
     }
   },
   "version": 1

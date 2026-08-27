@@ -99,9 +99,9 @@ def _(Jet, np):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    \begin{equation}
+    $$
     (\nabla (x^2+2y^2+3xy))(x=2, y=1)
-    \end{equation}
+    $$
     """)
     return
 
@@ -145,9 +145,9 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    \begin{equation}
+    $$
         \left.\sum_i (1+e^{-x_i})^{-1}\right|_{x_0=0, x_1=1, x_2=2}
-    \end{equation}
+    $$
     """)
     return
 
