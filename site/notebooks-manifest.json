@@ -112,8 +112,8 @@
     },
     "ml/torch/mnist_vae.py": {
       "html": "ml/torch/mnist_vae.html",
-      "html_sha256": "8727acfc3a2690d343218505d198d032161faf4cc9941ade5ac3198b2ea48686",
-      "source_sha256": "02b36f93a51b4b4c7925359a2bfe21366680122b8fe9877b71cc58ea24456a20"
+      "html_sha256": "07afd717f5116c710ad0956bbf0037f4928eba0c07b807f39cf4ce0576992df5",
+      "source_sha256": "fee685e10b79272f1cb4744751009f03e52024ac1ed8731dbb19cae4add08e2a"
     },
     "ml/winograd.py": {
       "html": "ml/winograd.html",

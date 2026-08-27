@@ -169,11 +169,11 @@ def _():
     最小化する negative ELBO は、画素の再構成誤差と潜在分布を標準正規分布へ近づける
     KL divergence の和です。
 
-    $$
+    $$\begin{aligned}
     \mathcal{L}
-      = \operatorname{BCE}(x,\hat{x})
-      + D_{\mathrm{KL}}\!\left(q_\phi(z\mid x)\,\|\,\mathcal{N}(0,I)\right)
-    $$
+      &= \operatorname{BCE}(x,\hat{x}) \\
+      &\quad + D_{\mathrm{KL}}\!\left(q_\phi(z\mid x)\,\Vert\,\mathcal{N}(0,I)\right)
+    \end{aligned}$$
 
     $$
     D_{\mathrm{KL}}
