@@ -92,8 +92,8 @@
     },
     "ml/my_nn.py": {
       "html": "ml/my_nn.html",
-      "html_sha256": "8df4860d2589fde0b92b0fe7e4ad00ee17425b366ec4dd5bcea0883099f90f43",
-      "source_sha256": "5e77e61675d0e0d767a6da23a30f44c8fa776c2584b0187beefa37f3a7b2854a"
+      "html_sha256": "6593f4b9bfb457738aa642410d0424438c1225b8c7f50423503512124d41bec6",
+      "source_sha256": "2f9495ccbc90d964a6cfad9586cb2db6812b7851587777eb4571081e32bf4e10"
     },
     "ml/ridge_regression_diabetes.py": {
       "html": "ml/ridge_regression_diabetes.html",
