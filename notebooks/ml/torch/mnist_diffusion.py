@@ -4,6 +4,9 @@ __generated_with = "0.24.0"
 app = marimo.App(width="medium")
 
 with app.setup:
+    import base64
+    import io
+
     import marimo as mo
     import matplotlib.pyplot as plt
     import numpy as np
@@ -11,6 +14,7 @@ with app.setup:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+    from PIL import Image
 
 
 @app.cell(hide_code=True)
@@ -144,6 +148,7 @@ def _(alpha_bars, betas, device, model, num_steps):
         labels = labels.to(device)
         null_labels = torch.full_like(labels, model.null_label)
         snapshots = []
+        denoising_frames = []
         for step in reversed(range(num_steps)):
             timestep = torch.full((len(labels),), step, device=device, dtype=torch.long)
             cond_noise = model(x, timestep, labels)
@@ -153,9 +158,10 @@ def _(alpha_bars, betas, device, model, num_steps):
             alpha_bar = alpha_bars[step].to(device)
             noise = torch.randn_like(x) if step > 0 else torch.zeros_like(x)
             x = (x - (1 - alpha) / torch.sqrt(1 - alpha_bar) * eps) / torch.sqrt(alpha) + torch.sqrt(betas[step]).to(device) * noise
+            denoising_frames.append(x.detach().cpu())
             if step in {29, 19, 9, 0}:
                 snapshots.append((step + 1, x.detach().cpu()))
-        return x.detach().cpu(), snapshots
+        return x.detach().cpu(), snapshots, denoising_frames
 
     return sample
 
@@ -209,9 +215,9 @@ def _(history_frame):
 @app.cell
 def _(sample):
     labels = torch.tensor(list(range(10)) + list(range(10)))
-    generated, snapshots = sample(labels)
+    generated, snapshots, denoising_frames = sample(labels)
     print(f"generated batch shape: {tuple(generated.shape)}")
-    return generated, labels, snapshots
+    return denoising_frames, generated, labels, snapshots
 
 
 @app.cell
@@ -238,6 +244,45 @@ def _(snapshots):
     _fig.suptitle("Denoising snapshots for labels 0-9", y=0.95)
     _fig.tight_layout()
     _fig
+    return
+
+
+@app.cell
+def _(denoising_frames):
+    _pil_frames = []
+    for _batch in denoising_frames:
+        _images = (
+            ((_batch[:, 0].clamp(-1.0, 1.0) + 1.0) / 2.0 * 255.0)
+            .to(torch.uint8)
+            .numpy()
+        )
+        _canvas = np.full((2 * 28 + 3 * 2, 10 * 28 + 11 * 2), 255, dtype=np.uint8)
+        for _index, _image in enumerate(_images):
+            _row, _column = divmod(_index, 10)
+            _top = 2 + _row * 30
+            _left = 2 + _column * 30
+            _canvas[_top : _top + 28, _left : _left + 28] = _image
+        _pil_frames.append(Image.fromarray(_canvas, mode="L"))
+
+    _buffer = io.BytesIO()
+    _pil_frames[0].save(
+        _buffer,
+        format="GIF",
+        save_all=True,
+        append_images=_pil_frames[1:],
+        duration=120,
+        loop=0,
+    )
+    _gif_base64 = base64.b64encode(_buffer.getvalue()).decode("ascii")
+    mo.Html(
+        f"""
+        <img
+          src="data:image/gif;base64,{_gif_base64}"
+          alt="ラベル 0 から 9 の MNIST 画像を生成する逆拡散過程"
+          style="width: 100%; image-rendering: pixelated;"
+        />
+        """
+    )
     return
 
 
