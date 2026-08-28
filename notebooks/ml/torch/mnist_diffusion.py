@@ -26,8 +26,15 @@ def _():
 
     拡散モデルは、画像へ少しずつノイズを加える **forward process** と、その逆をたどって
     ノイズから画像を作る **reverse process** の組で定義されます。この notebook では
-    条件付き denoising diffusion probabilistic model（DDPM）を MNIST で学習し、
-    ラベルを指定して数字を生成します。
+    条件付き拡散モデルを MNIST で学習し、ラベルを指定して数字を生成します。
+
+    式の書き方と議論の順序は、Calvin Luo, *Understanding Diffusion Models: A Unified
+    Perspective*（[arXiv:2208.11970](https://arxiv.org/abs/2208.11970)）に合わせています。
+    同論文は拡散モデルを **Variational Diffusion Model（VDM）**、すなわち各潜在変数が
+    入力と同じ次元を持ち、遷移が線形ガウスに固定された階層 VAE として定式化し、
+    ELBO の分解、ネットワークが予測しうる3つの等価な対象、guidance までを一本の筋で導きます。
+    以下ではその流れに沿って、Variational Diffusion Model、Three Equivalent
+    Interpretations、Guidance の順に実装と対応させます。
 
     生成品質は見た目の印象に頼らず、別途学習した MNIST 分類器で
     「指定したラベル通りの数字が生成されたか」を測って確認します。
@@ -121,27 +128,45 @@ def _(train_dataset):
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ## 拡散スケジュール
+    ## Variational Diffusion Model
 
-    forward process は各ステップで分散 $\beta_t$ のノイズを加えます。
-
-    $$
-    q(x_t \mid x_{t-1}) = \mathcal{N}\!\left(x_t;\ \sqrt{1-\beta_t}\,x_{t-1},\ \beta_t I\right)
-    $$
-
-    ステップを逐次適用しなくても、累積係数 $\bar{\alpha}_t$ を使えば任意の $t$ の状態を
-    1回の計算で得られます。学習時はこの式でノイズ画像を作ります。
+    論文は forward process（encoder）を、線形ガウス遷移という形に固定します。係数
+    $\alpha_t$ 自体は学習することもできますが、この notebook では定数の線形スケジュールとして
+    与えます。$\beta_t$ ではなく $\alpha_t$ を直接使う書き方です。
 
     $$
-    x_t = \sqrt{\bar{\alpha}_t}\,x_0 + \sqrt{1-\bar{\alpha}_t}\,\varepsilon,
-    \qquad \bar{\alpha}_t = \prod_{s=1}^{t}\left(1-\beta_s\right)
+    q(x_t \mid x_{t-1}) = \mathcal{N}\!\left(x_t;\ \sqrt{\alpha_t}\,x_{t-1},\ (1-\alpha_t) I\right)
+    $$
+
+    ステップを逐次適用しなくても、累積積 $\bar{\alpha}_t = \prod_{i=1}^{t}\alpha_i$ を使えば
+    任意の $t$ の状態が1回の計算で得られます。学習時はこの式でノイズ画像を作ります。
+
+    $$
+    q(x_t \mid x_0) = \mathcal{N}\!\left(x_t;\ \sqrt{\bar{\alpha}_t}\,x_0,\ (1-\bar{\alpha}_t) I\right),
+    \qquad
+    x_t = \sqrt{\bar{\alpha}_t}\,x_0 + \sqrt{1-\bar{\alpha}_t}\,\varepsilon_0
     $$
 
     ここで重要なのは**終端 $\bar{\alpha}_T$ が十分に 0 へ近いこと**です。生成は標準正規分布
     $x_T \sim \mathcal{N}(0, I)$ から始めるため、$\bar{\alpha}_T$ が大きいと
     「学習した終端分布」と「生成の開始分布」がずれ、逆過程がノイズのままになります。
 
-    $\beta_t$ は $10^{-4}$ から $0.02$ までの線形スケジュールとし、ステップ数は400にします。
+    実装では DDPM 系のコードの慣例に従い、$1-\alpha_t$ を先に等差数列として決めます。
+    論文の記号とコード上の変数の対応は次の通りです。
+
+    | 論文の記号 | コードの変数 | 内容 |
+    | --- | --- | --- |
+    | $1-\alpha_t$ | `betas` | 各ステップで加える分散。$10^{-4}$ から $0.02$ の線形スケジュール |
+    | $\alpha_t$ | `alphas` | `1.0 - betas` |
+    | $\bar{\alpha}_t$ | `alpha_bars` | `alphas` の累積積 |
+    | $T$ | `num_steps` | 400 |
+    | $\varepsilon_0$ | `noise` | 加えた標準正規ノイズ |
+
+    **添字は論文が1始まり、コードが0始まりです。** 配列の添字 `i` は論文の $t = i+1$ に対応し、
+    `alpha_bars[i]` が $\bar{\alpha}_{i+1}$ です。したがって `q_sample` に `t` として 0 を渡すと
+    得られるのは $x_1$ で、`i` の最大値 `num_steps - 1` が $t=T$ にあたります。後半の逆過程の
+    ループでも同様に、添字 `step` の1回の更新が $x_{\text{step}+1} \to x_{\text{step}}$ に対応します。
+
     次のセルで定義する `q_sample` が上の $x_t$ の式そのものです。
     """)
     return
@@ -243,11 +268,112 @@ def _(image, label, noisy_versions):
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ## デノイザ
+    ## ELBO の分解と denoising matching term
 
-    学習するのは「ノイズ画像 $x_t$ に含まれるノイズ $\varepsilon$ を当てるネットワーク」
-    $\varepsilon_\theta(x_t, t, y)$ です。入力はノイズ画像・ステップ番号・ラベルの3つで、
+    論文は対数尤度の下界（ELBO）を2通りに分解します。1つ目は遷移 $q(x_t \mid x_{t-1})$ を
+    そのまま比べる形で、**reconstruction term**、**prior matching term**、
+    **consistency term** の3つに分かれます。ただし consistency term は各ステップで
+    $x_{t-1}$ と $x_{t+1}$ という2つの確率変数についての期待値になり、
+    Monte Carlo 推定の分散が大きくなります。
+
+    そこで論文は、$x_0$ で条件付けた後ろ向きの遷移を使う2つ目の分解を採り、
+    こちらを推奨しています。各項が高々1つの確率変数の期待値で書けるためです。
+
+    $$
+    \log p(x_0) \ge
+    \mathbb{E}_{q(x_1 \mid x_0)}\!\left[\log p_\theta(x_0 \mid x_1)\right]
+    -D_{\mathrm{KL}}\!\left(q(x_T \mid x_0) \,\|\, p(x_T)\right)
+    -\sum_{t=2}^{T} \mathbb{E}_{q(x_t \mid x_0)}
+    \left[D_{\mathrm{KL}}\!\left(q(x_{t-1} \mid x_t, x_0) \,\|\, p_\theta(x_{t-1} \mid x_t)\right)\right]
+    $$
+
+    3項はそれぞれ **reconstruction term**、**prior matching term**、
+    **denoising matching term** と呼ばれます。この notebook のようにスケジュールを固定する場合、
+    学習対象を含まないのは prior matching term だけで、これは $\bar{\alpha}_T \to 0$ なら
+    0 に近づく量です。前節でスケジュールの終端を
+    確認したのはこの項に対応します。reconstruction term は $p_\theta(x_0 \mid x_1)$ を含み
+    最適化の対象になりますが、項数が1つだけで、$T-1$ 個の和である denoising matching term が
+    学習を支配します。
+
+    **この notebook は reconstruction term を別扱いせず、後述する簡略化したノイズ予測の損失を
+    $t=1$ を含む全ステップへ一様に適用します。** 論文の ELBO をそのまま最大化するのではなく、
+    実装で広く使われている形を採る、という選択です。
+
+    denoising matching term の比較対象となる真の後ろ向き遷移は、Bayes の定理から
+    ガウス分布として閉じた形で求まります。
+
+    $$
+    q(x_{t-1} \mid x_t, x_0) = \mathcal{N}\!\left(x_{t-1};\ \mu_q(x_t, x_0),\ \sigma_q^2(t) I\right)
+    $$
+
+    $$
+    \mu_q(x_t, x_0) = \frac{\sqrt{\alpha_t}\left(1-\bar{\alpha}_{t-1}\right) x_t
+    +\sqrt{\bar{\alpha}_{t-1}}\left(1-\alpha_t\right) x_0}{1-\bar{\alpha}_t}
+    $$
+
+    $$
+    \sigma_q^2(t) = \frac{\left(1-\alpha_t\right)\left(1-\bar{\alpha}_{t-1}\right)}{1-\bar{\alpha}_t}
+    $$
+
+    分散 $\sigma_q^2(t)$ は $x_t$ にも $x_0$ にも依らず $t$ だけで決まる既知の定数です。
+    そこで逆過程の分散も同じ $\sigma_q^2(t) I$ に固定し、
+    $p_\theta(x_{t-1} \mid x_t) = \mathcal{N}\!\left(x_{t-1};\ \mu_\theta(x_t, t),\ \sigma_q^2(t) I\right)$
+    と置きます。分散が一致するので2つのガウス分布の KL は平均の差だけになり、学習は
+    $\mu_\theta(x_t, t)$ を $\mu_q(x_t, x_0)$ に合わせる問題へ簡約されます。
+
+    $$
+    \arg\min_{\theta} \frac{1}{2\sigma_q^2(t)}
+    \left\lVert \mu_\theta(x_t, t) - \mu_q(x_t, x_0) \right\rVert_2^2
+    $$
+
+    この $\sigma_q^2(t)$ は、後半のサンプリングでそのまま各ステップの分散として使います。
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ## Three Equivalent Interpretations
+
+    $\mu_\theta$ を作るためにネットワークが予測すべき対象は1つに決まりません。
+    論文は次の3つが等価であることを示します。目的関数はいずれも denoising matching term
+    （$t = 2, \ldots, T$）から導かれるものです。
+
+    - **元画像 $\hat{x}_\theta(x_t, t)$ を予測する**：$\mu_q$ と同じ形に
+      $\hat{x}_\theta$ を差し込む。目的関数は
+      $\tfrac{1}{2}\left(\mathrm{SNR}(t-1)-\mathrm{SNR}(t)\right)
+      \lVert \hat{x}_\theta - x_0 \rVert_2^2$ となり、
+      $\mathrm{SNR}(t) = \bar{\alpha}_t / (1-\bar{\alpha}_t)$ です。
+    - **加えたノイズ $\hat{\varepsilon}_\theta(x_t, t)$ を予測する**：
+      $x_0 = (x_t - \sqrt{1-\bar{\alpha}_t}\,\varepsilon_0)/\sqrt{\bar{\alpha}_t}$ を代入して整理する。
+    - **スコア $s_\theta(x_t, t) \approx \nabla \log p(x_t)$ を予測する**：
+      Tweedie の公式から $x_0$ をスコアで表して代入する。
+
+    3つ目のスコア表現は、次の2つの関係で2つ目と結び付きます。1つ目の式は
+    $q(x_t \mid x_0)$ がガウス分布であることから直接微分して得られる、$x_0$ で条件付けた
+    スコアです。2つ目の式は Tweedie の公式が与える、ノイズ付きデータの周辺分布 $p(x_t)$ の
+    スコアで、条件付きの値を $x_t$ のもとで期待値を取った形になります。
+    いずれもスコアはノイズの逆向きを指し、
+    「ノイズを当てる」ことと「スコアを学ぶ」ことが同じ作業になります。
+
+    $$
+    \nabla \log q(x_t \mid x_0) = -\frac{1}{\sqrt{1-\bar{\alpha}_t}}\,\varepsilon_0,
+    \qquad
+    \nabla \log p(x_t) = -\frac{\mathbb{E}\!\left[\varepsilon_0 \mid x_t\right]}{\sqrt{1-\bar{\alpha}_t}}
+    $$
+
+    **この notebook は2つ目、ノイズ予測を実装します。** 学習対象は
+    $\hat{\varepsilon}_\theta(x_t, t, y)$ で、入力はノイズ画像・ステップ番号・ラベルの3つ、
     出力は入力と同じ形のノイズ推定です。
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ## デノイザの実装
 
     ステップ番号は整数のスカラーなので、そのまま入力すると表現力が足りません。
     Transformer と同じ **sinusoidal embedding** で周波数の異なる正弦・余弦へ展開し、
@@ -351,12 +477,24 @@ def _():
     「学習によってモデルが変化したこと」が表現できず、生成セルが未学習のモデルを
     使ってしまう可能性があるためです。
 
-    1回の更新では、バッチごとにステップ $t$ を一様乱数で選び、`q_sample` でノイズ画像を作り、
-    加えたノイズを当てる二乗誤差を最小化します。
+    1回の更新では、バッチごとにステップ $t$ を一様乱数で選び、`q_sample` でノイズ画像 $x_t$ を
+    作り、加えたノイズを当てる二乗誤差を最小化します。ノイズ予測の解釈で
+    denoising matching term を整理すると、論文の目的関数は次の重み付き二乗誤差になります。
 
     $$
-    \mathcal{L} = \mathbb{E}_{x_0, t, \varepsilon}
-    \left\lVert \varepsilon - \varepsilon_\theta(x_t, t, y) \right\rVert^2
+    \arg\min_{\theta} \frac{1}{2\sigma_q^2(t)}
+    \frac{\left(1-\alpha_t\right)^2}{\left(1-\bar{\alpha}_t\right)\alpha_t}
+    \left\lVert \varepsilon_0 - \hat{\varepsilon}_\theta(x_t, t) \right\rVert_2^2,
+    \qquad t = 2, \ldots, T
+    $$
+
+    実装では、DDPM 以降で広く使われる**重みを外した簡略版**を最小化します。
+    ステップごとの重み $\frac{1}{2\sigma_q^2(t)}\frac{(1-\alpha_t)^2}{(1-\bar{\alpha}_t)\alpha_t}$
+    を1に置き換えたもので、ELBO そのものではなくなりますが、学習が安定し実装も単純になります。
+
+    $$
+    \mathcal{L}_{\text{simple}} = \mathbb{E}_{x_0, t, \varepsilon_0, y}
+    \left\lVert \varepsilon_0 - \hat{\varepsilon}_\theta(x_t, t, y) \right\rVert_2^2
     $$
 
     このとき10%の確率でラベルを `null_label` に置き換えます。条件付きと条件なしの
@@ -364,7 +502,7 @@ def _():
     生成時に条件の効き方を調節できるようになります。
 
     最適化は Adam、学習率は $2\times10^{-4}$、エポック数は15です。
-    損失の目安として、ノイズを全く予測できないモデルの誤差はおよそ **1.0** です。
+    $\varepsilon_0$ は標準正規なので、ノイズを全く予測できないモデルの誤差はおよそ **1.0** です。
     学習後の値がこれを大きく下回っていることが、モデルが機能している最低条件になります。
     """)
     return
@@ -452,34 +590,53 @@ def _(history_frame):
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ## サンプリング
+    ## サンプリングと Guidance
 
     生成は $x_T \sim \mathcal{N}(0, I)$ から始め、$t = T$ から $t = 1$ へ逆向きに進めます。
-    各ステップの平均は、推定ノイズ $\hat{\varepsilon}$ を使って次で与えられます。
+    ノイズ予測の解釈では、$\mu_q$ の $x_0$ を
+    $x_0 = (x_t - \sqrt{1-\bar{\alpha}_t}\,\varepsilon_0)/\sqrt{\bar{\alpha}_t}$ で
+    置き換えて整理でき、$\mu_\theta$ は次の形になります。実装の `mean` はこの式です。
 
     $$
-    \mu_\theta(x_t, t) = \frac{1}{\sqrt{\alpha_t}}
-    \left(x_t - \frac{\beta_t}{\sqrt{1-\bar{\alpha}_t}}\,\hat{\varepsilon}\right)
+    \mu_\theta(x_t, t) = \frac{1}{\sqrt{\alpha_t}}\,x_t
+    -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_t}\,\sqrt{\alpha_t}}\,\hat{\varepsilon}
     $$
 
-    加えるノイズの分散には、$\beta_t$ ではなく事後分散 $\tilde{\beta}_t$ を使います。
-    終盤のステップで過剰なノイズが乗るのを防ぎ、輪郭がはっきりします。
+    分散には、ELBO の分解で現れた真の後ろ向き遷移の分散 $\sigma_q^2(t)$ をそのまま使います。
+    $1-\alpha_t$ をそのまま使うより終盤で乗るノイズが小さくなり、輪郭がはっきりします。
+    最後の1ステップ（$t=1$）でノイズを加えないのは、空積の約束 $\bar{\alpha}_0 = 1$ を入れると
+    $\sigma_q^2(1)=0$ になるためで、同じ式の自然な帰結です。なお ELBO の上では $t=1$ は
+    denoising matching term ではなく reconstruction term が担当する範囲にあたります。
 
     $$
-    \tilde{\beta}_t = \frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_t}\,\beta_t
+    \sigma_q^2(t) = \frac{\left(1-\alpha_t\right)\left(1-\bar{\alpha}_{t-1}\right)}{1-\bar{\alpha}_t}
     $$
 
-    推定ノイズは、条件付きと条件なしの2つの出力を重み $w$ で外挿して作ります（$w=2$ を使用）。
-    $w$ を大きくするほどラベルへの忠実度が上がり、多様性は下がります。
+    推定ノイズ $\hat{\varepsilon}$ は **classifier-free guidance** で作ります。論文はスコアの
+    Bayes 分解から、guidance をかけたスコアを無条件スコアと条件付きスコアの外挿として
+    書けることを示し、強度を $\gamma$ で表します。$\gamma=1$ が guidance なしの条件付きモデル、
+    $\gamma=0$ が条件を無視した無条件モデルで、$\gamma>1$ ほどラベルへの忠実度が上がり
+    多様性は下がります。ここでは $\gamma=2$ を使います。
 
     $$
-    \hat{\varepsilon} = \varepsilon_\theta(x_t, t, \varnothing)
-    +w\left(\varepsilon_\theta(x_t, t, y) - \varepsilon_\theta(x_t, t, \varnothing)\right)
+    \tilde{s}_\gamma(x_t, y) = \nabla \log p(x_t)
+    +\gamma\left(\nabla \log p(x_t \mid y) - \nabla \log p(x_t)\right)
+    = \gamma \nabla \log p(x_t \mid y) + (1-\gamma)\nabla \log p(x_t)
+    $$
+
+    左辺は guidance をかけた後のスコアで、$\gamma \ne 1$ では条件付きスコアそのものとは
+    一致しません。スコアとノイズは前節の関係で結ばれるため、同じ式をノイズ推定に
+    読み替えたものが実装になります。無条件側の入力は
+    ラベルを `null_label`（$\varnothing$）に置き換えたものです。
+
+    $$
+    \hat{\varepsilon} = \hat{\varepsilon}_\theta(x_t, t, \varnothing)
+    +\gamma\left(\hat{\varepsilon}_\theta(x_t, t, y) - \hat{\varepsilon}_\theta(x_t, t, \varnothing)\right)
     $$
 
     条件付きと条件なしは1つのバッチへまとめて1回で推論し、ステップ数400ぶんの
     呼び出し回数を半分に抑えています。`sample_images` の入力は生成したいラベル列と
-    guidance 強度、戻り値は次の3つ組です。
+    guidance 強度 $\gamma$（引数 `guidance_scale`、既定値2.0）、戻り値は次の3つ組です。
 
     - 最終的な生成画像（ラベル数 × 1 × 28 × 28）
     - `snapshots`：代表ステップの更新直後の状態。静止画の一覧表示に使います
