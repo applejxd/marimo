@@ -102,8 +102,8 @@
     },
     "ml/torch/mnist_convert.py": {
       "html": "ml/torch/mnist_convert.html",
-      "html_sha256": "63003406227ae2805ff1d91f4f8ab5a6c6c4de355b7f05cf16dc32853e679023",
-      "source_sha256": "69885bb67b82fd1f3a089b48f892c584dd6137d2c1f8e3bf3a58aca2274c9417"
+      "html_sha256": "cf3f3470aee55e92c3b61da56991fa5f95f5ba1cad70a874697606ee071e5f9f",
+      "source_sha256": "b710294dc3d390e6b91be7fb2ac96b9e7f61cfcf7923841402bb9ef16fbeba43"
     },
     "ml/torch/mnist_diffusion.py": {
       "html": "ml/torch/mnist_diffusion.html",
