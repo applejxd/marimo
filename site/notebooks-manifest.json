@@ -152,13 +152,13 @@
     },
     "simulation/FEM.py": {
       "html": "simulation/FEM.html",
-      "html_sha256": "2e5309e7770e566cb836ed3bf24c48f797c27b9fd5eb6e6b99f235714d9106c6",
-      "source_sha256": "1da866ba66c0c81064f4371b71597517acc2c4f8cc6dffcc9e834ef2244ddc1b"
+      "html_sha256": "ce62fc0562579feec1a3480ccdaf755f4ccc49940b954eb98194126465af7e2d",
+      "source_sha256": "028ae28124c556831b6beb087c02255bab5f15ab92830f2fbdd0b674975030b7"
     },
     "simulation/HyperbolicPDE.py": {
       "html": "simulation/HyperbolicPDE.html",
-      "html_sha256": "478ff82e04f8df281cae28c557fe76936876986b72f759258376bef922bd2f56",
-      "source_sha256": "88e7b9bdc229b9890dc67ea0eba9f85158c898581a675e997caf749e638d1a5f"
+      "html_sha256": "36f3521d8f952ecf6a1591f790cb9dcc76a47d526af811559dae554fc662b9ca",
+      "source_sha256": "d62c9462a2019a42533d5f2a9fdd02fc5bad7227fc764e0223ccca98bc5d82b5"
     },
     "simulation/Integration.py": {
       "html": "simulation/Integration.html",
@@ -187,8 +187,8 @@
     },
     "simulation/ParabolicPDE.py": {
       "html": "simulation/ParabolicPDE.html",
-      "html_sha256": "82a1e28a38c4d452c659636b790b9fab924583957679e7f70a7e64537b46568c",
-      "source_sha256": "8d736df42c7d9f3d7bb3d45ee70c417839605160cbb3878a507e91a096bf8951"
+      "html_sha256": "38c57db56e8dba9be560186a769cf9af812905dc3711b374e2f99f3db52d6a69",
+      "source_sha256": "ca37094dbe0f71f6db83f129ad896afc25a481ee4a3f97ae3dd7217884b12535"
     }
   },
   "version": 1
