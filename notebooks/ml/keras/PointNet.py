@@ -17,9 +17,10 @@ def _():
     mo.md(r"""
     # PointNet 風モデルで点群分類
 
-    元 notebook は ModelNet10 をダウンロードして TensorBoard で学習していた。
-    この版では大容量ダウンロードや UI 依存を避けるため、球・立方体・円柱・円錐の合成点群を自前生成する。
-    PointNet の要点である `Conv1D + GlobalMaxPooling + T-Net` は残しつつ、短時間で export できる教材に整えている。
+    球・立方体・円柱・円錐の合成点群を自前生成し、PointNet の要点である
+    `Conv1D + GlobalMaxPooling + T-Net` の構成で分類する。点群は順序を持たないため、
+    点ごとに同じ変換を適用してから対称関数（max pooling）で集約する、という
+    設計がそのまま形に現れている。データを合成するので追加のダウンロードは要らない。
     """)
     return
 

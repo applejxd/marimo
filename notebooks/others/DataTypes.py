@@ -18,7 +18,8 @@ def _(mo):
     mo.md(r"""
     # NumPy / pandas のデータ型メモ
 
-    Jupyter の `display()` に依存せず、marimo でもそのまま実行できる形に整理した。
+    NumPy の dtype と pandas の型がどう対応し、どこで暗黙の変換が起きるかを
+    小さな例で確認する。
     """)
     return
 

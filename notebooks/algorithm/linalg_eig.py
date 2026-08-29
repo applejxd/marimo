@@ -14,7 +14,12 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    <a href="https://colab.research.google.com/github/applejxd/colaboratory/blob/master/algorithm/linalg_eig.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+    # 固有値問題と特異値分解
+
+    行列の固有値を数値的に求める方法を、素朴なべき乗法から実用的な QR 法まで
+    順に実装する。5 次以上の代数方程式には解の公式が無いため、固有値計算は
+    本質的に反復法になる。後半では前処理（ハウスホルダー変換・ギブンス回転）
+    による高速化と、固有値問題に帰着させる特異値分解を扱う。
     """)
     return
 

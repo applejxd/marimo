@@ -12,7 +12,13 @@ with app.setup:
 def _():
     mo.md(r"""
     # 数値積分法
-    legacy/simulation/Integration.ipynb を marimo 向けに整理し、円周率の積分表現を題材に各手法の精度を比較する。
+
+    円周率の積分表現
+    $$
+    I=\int_0^1dx\frac{4}{1+x^2}=\pi
+    $$
+    を題材に、台形公式・シンプソン公式・ロンバーグ法・ガウス＝ルジャンドル積分の
+    精度と収束の速さを比較する。
     """)
     return
 

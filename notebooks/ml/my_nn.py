@@ -22,9 +22,8 @@ def _():
     レイヤは Sigmoid・Affine・Softmax-with-Loss の3種類で、それぞれ `forward` と
     `backward` を持つ。`backward` を数式から導いて実装することがこの notebook の主眼である。
 
-    元 notebook は OpenML の MNIST（`fetch_openml("mnist_784")`）と PyCaret を経由して
-    ったが、ここでは自前実装の順伝播・逆伝播を学ぶ意図を保ちつつ、
-    追加ダウンロード不要の `load_digits()` を使う。
+    データは scikit-learn 同梱の `load_digits()` を使う。8×8 と粗いが追加の
+    ダウンロードが要らず、逆伝播の実装を確かめるには十分な規模である。
     """)
     return
 

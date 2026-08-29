@@ -17,9 +17,8 @@ def _():
     mo.md(r"""
     # scikit-learn による回帰の基本例
 
-    元 notebook は削除済みの Boston housing を使っていた。
-    ここでは同じ回帰教材の意図を保ちつつ、
-    scikit-learn 同梱の `load_diabetes` データセットへ置き換えている。
+    scikit-learn 同梱の diabetes データセットを使い、線形回帰と Ridge 回帰の
+    基本的な流れを確認する。追加のダウンロードが要らないので、そのまま実行できる。
     """)
     return
 

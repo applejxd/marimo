@@ -19,7 +19,7 @@ def _():
     # MNIST を使った Keras 画像分類
 
     全結合ネットワークと CNN を同じ前処理で学習し、loss/accuracy と誤分類例を比較する。
-    元 notebook にあった PyCaret 版は `pycaret` がある環境だけで追加比較できるようにした。
+    末尾では、`pycaret` が入っている環境に限り PyCaret の自動比較も追加で実行する。
     """)
     return
 

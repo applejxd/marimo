@@ -12,7 +12,11 @@ with app.setup:
 def _():
     mo.md(r"""
     # ODE ソルバーの基本例
-    legacy/simulation/ODEtest.ipynb を marimo 向けに整理し、調和振動子を SciPy の `ode` で解く。
+
+    調和振動子 $y''=-y$ を SciPy の `scipy.integrate.ode` で解き、
+    解析解 $\cos t$ との差から誤差の蓄積を確認する。
+    `solve_ivp` と違って刻みを自分で進める低水準の API なので、
+    積分器の状態がどう更新されるかがそのまま見える。
     """)
     return
 
@@ -20,7 +24,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    [Qiita の解説記事](https://qiita.com/tobira-code/items/d76ed91a88f112b4a474)を参考にした ODE のサンプルノート。
+    [Qiita の解説記事](https://qiita.com/tobira-code/items/d76ed91a88f112b4a474)を参考にした。
     はじめに必要なパッケージを import する.
     - numpy で多次元配列データ処理
     - matplotlib でデータ可視化

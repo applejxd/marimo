@@ -14,15 +14,10 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    <a href="https://colab.research.google.com/github/applejxd/colaboratory/blob/master/algorithm/kalman.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-    """)
-    return
+    # カルマンフィルタ
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    # Kalman Filters
+    ノイズの乗った観測から状態を推定するカルマンフィルタを、まず自前実装で
+    仕組みを追い、次に非線形系へ拡張した EKF（拡張カルマンフィルタ）を扱う。
     """)
     return
 

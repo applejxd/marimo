@@ -14,7 +14,12 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    <a href="https://colab.research.google.com/github/applejxd/colaboratory/blob/master/algorithm/sort_tracking.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+    # 多物体追跡の構成要素
+
+    多物体追跡アルゴリズム SORT は、状態の予測と、予測と観測の対応付けの 2 つから
+    なる。この notebook では対応付けを担うハンガリアン法を実装し、続いて追跡対象
+    として二重振り子を数値積分して、ノイズの乗った観測が真の軌跡からどれだけ
+    ずれるかをアニメーションで確認する。
     """)
     return
 

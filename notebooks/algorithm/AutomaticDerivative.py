@@ -14,7 +14,12 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    <a href="https://colab.research.google.com/github/applejxd/colaboratory/blob/master/algorithm/AutomaticDerivative.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+    # 自動微分
+
+    数式処理でも数値微分でもない第三の方法として、計算グラフをたどりながら
+    連鎖律を適用する自動微分を扱う。前半は Ceres Solver の `Jet`（二重数を多変数へ
+    拡張したもの）を自分で実装して前進モードの仕組みを追い、後半は JAX の
+    `grad` を使って、その結果が数値微分と一致することを確かめる。
     """)
     return
 

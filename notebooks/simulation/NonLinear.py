@@ -12,7 +12,11 @@ with app.setup:
 def _():
     mo.md(r"""
     # 非線形方程式の数値解法
-    legacy/simulation/NonLinear.ipynb を marimo 向けに整理し、二分法・はさみうち法・ニュートン法・割線法を比較する。
+
+    1 変数および多変数の非線形方程式 $f(x)=0$ を数値的に解く。
+    解を含む区間を狭めていく方法（二分法・はさみうち法）と、
+    微分を使って収束を速める方法（ニュートン法・割線法）を、
+    同じ例題に対して比較する。
     """)
     return
 
@@ -352,17 +356,6 @@ def _(Callable):
 def _(non_linear_func, secant, x_real):
     _x = secant(non_linear_func, -3.0, 0)
     print(f'Δx = {_x - x_real:.6e}, f(x)={non_linear_func(_x):.6e}')
-    return
-
-
-@app.cell(hide_code=True)
-def _():
-    mo.md(r"""
-    ### マラー法
-
-    生成元ノートブックはここで終了していたため、この marimo 版でも
-    上記 4 手法までを再現対象とする。
-    """)
     return
 
 

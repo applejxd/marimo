@@ -95,8 +95,8 @@ def _(mo):
     mo.md(r"""
     # Python 高速化メモ
 
-    Colab マジックを除去し、CPU / GPU / 並列処理 / データロードの例を
-    marimo でそのまま headless 実行できるように整理した。
+    Python コードを速くする手立てを、CPU / GPU / 並列処理 / データロードの
+    それぞれについて実測しながら比較する。
     """)
     return
 

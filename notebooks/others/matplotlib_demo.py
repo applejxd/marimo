@@ -42,8 +42,8 @@ def _(mo):
     mo.md(r"""
     # matplotlib のデモ
 
-    Colab 固有の `%matplotlib` や `IPython.display` に頼らず、
-    静止画と GIF アニメーションをそのままエクスポートできるようにした。
+    matplotlib の主要な作図パターンを一通り試す。静止画に加えて GIF アニメーションも
+    生成し、静的 HTML にそのまま埋め込める形で出力する。
     """)
     return
 

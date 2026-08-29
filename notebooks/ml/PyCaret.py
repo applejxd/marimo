@@ -17,7 +17,8 @@ def _():
     mo.md(r"""
     # PyCaret による回帰ワークフロー
 
-    公開データ `load_diabetes` を使い、UI 依存の plot を避けて headless でも読める表中心の notebook に整理した。
+    scikit-learn 同梱の diabetes データセットを題材に、PyCaret による回帰の
+    ワークフロー（前処理・モデル比較・チューニング・評価）を表中心で確認する。
     実行には `uv sync --group specialized --group gpu` が必要である。
     """)
     return

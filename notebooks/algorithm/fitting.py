@@ -14,7 +14,11 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    <a href="https://colab.research.google.com/github/applejxd/colaboratory/blob/master/algorithm/fitting.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+    # 曲線フィッティングと RANSAC
+
+    観測点へ曲線を当てはめる問題を、陽関数 $y=f(x)$ と陰関数 $f(x,y)=0$ の
+    両方の形で扱う。前半は外れ値がない場合の最小二乗法、後半は外れ値を含む
+    場合に有効な RANSAC を試し、必要な試行回数の見積もりまで確認する。
     """)
     return
 

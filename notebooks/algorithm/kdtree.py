@@ -14,7 +14,11 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    <a href="https://colab.research.google.com/github/applejxd/colaboratory/blob/master/algorithm/kdtree.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+    # k-d 木
+
+    2 次元の点群を k-d 木で分割する。木の構造をテキストで出力したうえで、
+    それが平面をどう区切っているかを図に描く。深さごとに分割軸を $x$ と $y$ で
+    交互に切り替えるため、領域が入れ子の長方形として構成される。
     """)
     return
 

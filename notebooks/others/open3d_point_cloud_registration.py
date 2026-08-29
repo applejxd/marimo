@@ -40,7 +40,8 @@ def _(mo):
     mo.md(r"""
     # Open3D による点群レジストレーション
 
-    Open3D の GUI に依存せず、合成点群を使って headless に静止画を書き出す。
+    合成した 2 つの点群の位置合わせを、Open3D の ICP で行う。GUI を開かずに
+    offscreen renderer で静止画を書き出すため、そのまま静的 HTML へ載る。
     offscreen renderer が使えない場合は、理由を表示したうえで matplotlib に切り替える。
     """)
     return
