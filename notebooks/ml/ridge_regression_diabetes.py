@@ -17,9 +17,9 @@ def _():
     mo.md(r"""
     # scikit-learn による回帰の基本例
 
-    元 notebook は削除済みの Boston housing を使っていました。
+    元 notebook は削除済みの Boston housing を使っていた。
     ここでは同じ回帰教材の意図を保ちつつ、
-    scikit-learn 同梱の `load_diabetes` データセットへ置き換えています。
+    scikit-learn 同梱の `load_diabetes` データセットへ置き換えている。
     """)
     return
 

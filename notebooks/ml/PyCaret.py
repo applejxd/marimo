@@ -17,8 +17,8 @@ def _():
     mo.md(r"""
     # PyCaret による回帰ワークフロー
 
-    公開データ `load_diabetes` を使い、UI 依存の plot を避けて headless でも読める表中心の notebook に整理しました。
-    実行には `uv sync --group specialized --group gpu` が必要です。
+    公開データ `load_diabetes` を使い、UI 依存の plot を避けて headless でも読める表中心の notebook に整理した。
+    実行には `uv sync --group specialized --group gpu` が必要である。
     """)
     return
 

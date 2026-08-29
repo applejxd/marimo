@@ -12,7 +12,7 @@ with app.setup:
 def _():
     mo.md(r"""
     # 数値積分法
-    legacy/simulation/Integration.ipynb を marimo 向けに整理し、円周率の積分表現を題材に各手法の精度を比較します。
+    legacy/simulation/Integration.ipynb を marimo 向けに整理し、円周率の積分表現を題材に各手法の精度を比較する。
     """)
     return
 

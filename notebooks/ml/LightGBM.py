@@ -17,9 +17,9 @@ def _():
     mo.md(r"""
     # LightGBM で回帰タスクを学ぶ
 
-    元 notebook と同じく、表形式回帰・特徴量重要度・ハイパーパラメータ探索を扱います。
+    元 notebook と同じく、表形式回帰・特徴量重要度・ハイパーパラメータ探索を扱う。
     Boston housing は現在の scikit-learn で削除されているため、
-    ここでは組み込みの diabetes データセットへ置き換えています。
+    ここでは組み込みの diabetes データセットへ置き換えている。
     """)
     return
 

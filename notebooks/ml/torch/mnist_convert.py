@@ -29,19 +29,19 @@ def _():
     # MNIST 認識モデルを PyTorch で構築して変換
 
     小さな畳み込みネットワークを PyTorch で学習し、**TorchScript → ONNX Runtime →
-    OpenVINO → ExecuTorch** の順に変換して、次の 2 点を確認します。
+    OpenVINO → ExecuTorch** の順に変換して、次の 2 点を確認する。
 
     1. **出力の一致**：どの変換先でも、学習済みモデルと同じ logits・同じ予測が得られるか
     2. **推論時間の違い**：同じ重み・同じ入力でも、実行するプラットフォーム
        （CPU か GPU か、どの推論 runtime か、どの backend か）で速度がどれだけ変わるか
 
-    GPU を使えるかは runtime によって違います。ONNX Runtime は同じ ONNX ファイルから CPU と
+    GPU を使えるかは runtime によって違う。ONNX Runtime は同じ ONNX ファイルから CPU と
     CUDA の session を両方作れるので、**モデルを固定したまま実行先だけを CPU と GPU で切り替えた
-    比較**ができます。OpenVINO の GPU プラグインは Intel 製 GPU 専用、ExecuTorch の XNNPACK
-    backend は CPU 専用なので、この 2 つは CPU での比較になります。
+    比較**ができる。OpenVINO の GPU プラグインは Intel 製 GPU 専用、ExecuTorch の XNNPACK
+    backend は CPU 専用なので、この 2 つは CPU での比較になる。
 
     後半では batch size を変えながら 1 回の推論にかかる時間を測り、差が生じる理由を実測値と
-    対応付けて整理します。
+    対応付けて整理する。
     """)
     return
 
@@ -51,12 +51,12 @@ def _():
     mo.md(r"""
     ## 共通部品と再現性
 
-    冒頭の `with app.setup` ブロック（marimo 上では折りたたまれています）で、notebook 全体から
-    使う標準ライブラリと marimo・Matplotlib・NumPy・pandas・PyTorch を import しています。
+    冒頭の `with app.setup` ブロック（marimo 上では折りたたまれている）で、notebook 全体から
+    使う標準ライブラリと marimo・Matplotlib・NumPy・pandas・PyTorch を import している。
 
-    次のセルでは乱数 seed を 42 に固定し、CUDA・MPS・CPU の順に利用可能な device を選びます。
-    ここで選んだ `device` は**学習にのみ**使います。変換と比較は、どの環境でも同じ手順になるよう
-    CPU 上の重みから行います。
+    次のセルでは乱数 seed を 42 に固定し、CUDA・MPS・CPU の順に利用可能な device を選ぶ。
+    ここで選んだ `device` は**学習にのみ**使う。変換と比較は、どの環境でも同じ手順になるよう
+    CPU 上の重みから行う。
     """)
     return
 
@@ -84,12 +84,12 @@ def _():
     ## 実行環境の記録
 
     推論時間はハードウェアとスレッド数に強く依存するため、比較の前提として実行環境を表に
-    残します。このページに載っている数値は、下の表の環境で測ったものです。
+    残す。このページに載っている数値は、下の表の環境で測ったものである。
 
     - 入力：なし（実行中のプロセスから取得）
     - 出力：`available` = 変換先ライブラリの有無、`environment_frame` = 環境情報の `DataFrame`
-    - `torch.get_num_threads()` は PyTorch が CPU 演算に使うスレッド数です。ONNX Runtime・
-      OpenVINO・ExecuTorch はそれぞれ独自のスレッドプールを持ち、既定値も異なります
+    - `torch.get_num_threads()` は PyTorch が CPU 演算に使うスレッド数である。ONNX Runtime・
+      OpenVINO・ExecuTorch はそれぞれ独自のスレッドプールを持ち、既定値も異なる
     """)
     return
 
@@ -160,12 +160,12 @@ def _():
     ## データ
 
     torchvision の MNIST を `data/` へ download し、`ToTensor` で `[0, 1]` に変換したあと、
-    平均 0.1307・標準偏差 0.3081 で正規化します。この notebook の目的は精度の追求ではなく
-    変換経路の比較なので、学習は先頭 6,000 件、評価は先頭 1,000 件だけを使います。
+    平均 0.1307・標準偏差 0.3081 で正規化する。この notebook の目的は精度の追求ではなく
+    変換経路の比較なので、学習は先頭 6,000 件、評価は先頭 1,000 件だけを使う。
 
     - 前処理：`Normalize((0.1307,), (0.3081,))`（MNIST 全画素の平均と標準偏差）
     - 出力：`train_loader`（batch size 128・shuffle あり）、`test_loader`（batch size 256・順序固定）
-    - 次のセルでは、正規化を戻して学習データの先頭 10 枚を表示します
+    - 次のセルでは、正規化を戻して学習データの先頭 10 枚を表示する
     """)
     return
 
@@ -204,13 +204,13 @@ def _():
     mo.md(r"""
     ## モデル
 
-    畳み込み 2 層と全結合 2 層の小さな CNN です。28×28 の入力は `conv1` で 26×26、`conv2` で
+    畳み込み 2 層と全結合 2 層の小さな CNN である。28×28 の入力は `conv1` で 26×26、`conv2` で
     24×24 になり、`max_pool2d` で 12×12 へ縮小されるため、全結合層の入力は
-    64 × 12 × 12 = 9,216 次元になります。出力は 10 クラスの対数確率です。
+    64 × 12 × 12 = 9,216 次元になる。出力は 10 クラスの対数確率である。
 
-    `F.max_pool2d(x, 2, 2)` と **stride を明示**している点だけ、素朴な実装と異なります。stride を
-    省略しても既定で kernel size と同じ 2 になり計算結果は変わりませんが、後半で使う ExecuTorch の
-    XNNPACK backend は stride 引数が省略された `max_pool2d` を解釈できず、変換が失敗します。
+    `F.max_pool2d(x, 2, 2)` と **stride を明示**している点だけ、素朴な実装と異なる。stride を
+    省略しても既定で kernel size と同じ 2 になり計算結果は変わらないが、後半で使う ExecuTorch の
+    XNNPACK backend は stride 引数が省略された `max_pool2d` を解釈できず、変換が失敗する。
     """)
     return
 
@@ -245,14 +245,14 @@ def _():
     mo.md(r"""
     ## 学習の準備
 
-    最適化には Adadelta（学習率 1.0）を使い、`StepLR` で 1 epoch ごとに学習率を 0.7 倍します。
-    損失は `log_softmax` 出力に対応する negative log likelihood です。続く 2 セルで、最適化器と
-    評価関数を用意します。
+    最適化には Adadelta（学習率 1.0）を使い、`StepLR` で 1 epoch ごとに学習率を 0.7 倍する。
+    損失は `log_softmax` 出力に対応する negative log likelihood である。続く 2 セルで、最適化器と
+    評価関数を用意する。
 
-    `evaluate()` は指定した device 上でモデルを評価します。
+    `evaluate()` は指定した device 上でモデルを評価する。
 
     - 入力：`model`（評価するモデル）、`device`、`loader`（`DataLoader`）
-    - 処理：`eval()` と `no_grad()` の下で全 batch を推論し、損失の合計と正解数を集計します
+    - 処理：`eval()` と `no_grad()` の下で全 batch を推論し、損失の合計と正解数を集計する
     - 出力：`(平均損失, 正解率)` のタプル
     """)
     return
@@ -289,8 +289,8 @@ def _():
     mo.md(r"""
     ## 学習
 
-    2 epoch だけ学習します。各 epoch の終わりに評価用データで損失と正解率を測り、
-    `history_frame` へ記録します。続く 2 セルで、その記録を表と図で確認します。
+    2 epoch だけ学習する。各 epoch の終わりに評価用データで損失と正解率を測り、
+    `history_frame` へ記録する。続く 2 セルで、その記録を表と図で確認する。
     """)
     return
 
@@ -343,8 +343,8 @@ def _():
     mo.md(r"""
     ## 変換前の基準となる推論
 
-    評価用データの先頭 8 枚を、以降のすべての比較で共通の入力として使います。まず学習に使った
-    device 上のモデルで推論し、その予測を図で確認します。
+    評価用データの先頭 8 枚を、以降のすべての比較で共通の入力として使う。まず学習に使った
+    device 上のモデルで推論し、その予測を図で確認する。
 
     - 出力：`sample_input`（8×1×28×28 の tensor・学習 device 上）、`sample_labels`（正解ラベル）、
       `native_logits`（CPU へ戻した logits）
@@ -381,10 +381,10 @@ def _():
     mo.md(r"""
     ## 変換の共通準備
 
-    変換は CPU 上の重みから行います。学習済みモデルを `deepcopy` して CPU へ移し、`eval()` で
-    dropout を無効にした `cpu_model` を、すべての変換と測定の元にします。
+    変換は CPU 上の重みから行う。学習済みモデルを `deepcopy` して CPU へ移し、`eval()` で
+    dropout を無効にした `cpu_model` を、すべての変換と測定の元にする。
 
-    - 出力：`artifact_dir` = notebook と同じ場所に作る一時ディレクトリ（最後のセルで削除します）、
+    - 出力：`artifact_dir` = notebook と同じ場所に作る一時ディレクトリ（最後のセルで削除する）、
       `cpu_model` = CPU 上の推論用モデル、`cpu_input` = 8 枚の入力、
       `native_logits_cpu` = 比較の基準になる logits
     """)
@@ -407,13 +407,13 @@ def _():
     mo.md(r"""
     ## 1. TorchScript
 
-    `torch.jit.script` は Python で書いたモデル定義を TorchScript の中間表現へ変換します。Python
-    インタプリタなしで実行できる形式になりますが、呼び出される演算そのものは PyTorch と同じ
-    ATen カーネルです。
+    `torch.jit.script` は Python で書いたモデル定義を TorchScript の中間表現へ変換する。Python
+    インタプリタなしで実行できる形式になるが、呼び出される演算そのものは PyTorch と同じ
+    ATen カーネルである。
 
     - 入力：`cpu_model`、`cpu_input`
-    - 処理：script 化してファイルへ保存し、読み直してから推論します（保存と読み込みを経由する
-      ことで、実際に配布する形と同じ経路を測ります）
+    - 処理：script 化してファイルへ保存し、読み直してから推論する（保存と読み込みを経由する
+      ことで、実際に配布する形と同じ経路を測る）
     - 出力：`scripted_model`、`torchscript_logits`、`torchscript_setup_ms` = 変換にかかった時間 [ms]
     """)
     return
@@ -437,13 +437,13 @@ def _():
     mo.md(r"""
     ## 2. ONNX と ONNX Runtime（CPU と CUDA）
 
-    ONNX は framework に依存しないグラフ表現で、ONNX Runtime はそれを実行する推論エンジンです。
-    `dynamic_axes` で batch 次元を可変にしているため、1 つのファイルでどの batch size も実行できます。
+    ONNX は framework に依存しないグラフ表現で、ONNX Runtime はそれを実行する推論エンジンである。
+    `dynamic_axes` で batch 次元を可変にしているため、1 つのファイルでどの batch size も実行できる。
 
-    ここが他の 3 経路と違う点として、**同じ ONNX ファイルから CPU と GPU の session を両方作れます**。
+    ここが他の 3 経路と違う点として、**同じ ONNX ファイルから CPU と GPU の session を両方作れる**。
     ONNX Runtime は演算の実装を execution provider（EP）として差し替える設計で、`onnxruntime-gpu`
-    package には `CPUExecutionProvider` と `CUDAExecutionProvider` の両方が含まれるためです。
-    グラフも重みも共通なので、**同じモデルを CPU で動かすか GPU で動かすか**だけを比べられます。
+    package には `CPUExecutionProvider` と `CUDAExecutionProvider` の両方が含まれるためである。
+    グラフも重みも共通なので、**同じモデルを CPU で動かすか GPU で動かすか**だけを比べられる。
 
     - 入力：`cpu_model`、`cpu_input`（グラフを trace するための例）
     - 処理：opset 18 で export → `onnx.checker` で妥当性を検査 → CPU EP の session を作成し、
@@ -451,10 +451,10 @@ def _():
     - 出力：`onnx_logits` / `onnx_cuda_logits`、`ort_session` / `ort_cuda_session`、
       `onnx_setup_ms` / `onnx_cuda_setup_ms`
     - session 作成時にグラフ最適化（定数の畳み込み、演算の融合、メモリ確保の計画）が走るため、
-      `onnx_setup_ms` には export だけでなく最適化の時間も含まれます。`onnx_cuda_setup_ms` は
-      export 済みのファイルから session を作る時間だけです
+      `onnx_setup_ms` には export だけでなく最適化の時間も含まれる。`onnx_cuda_setup_ms` は
+      export 済みのファイルから session を作る時間だけである
     - `session.run()` は host 上の NumPy 配列を受け取って返すため、CUDA EP の測定値には
-      host と device の間の転送が含まれます。PyTorch の「転送込み」と同じ土俵の値です
+      host と device の間の転送が含まれる。PyTorch の「転送込み」と同じ土俵の値である
     """)
     return
 
@@ -521,16 +521,16 @@ def _():
     mo.md(r"""
     ## 3. OpenVINO
 
-    OpenVINO は Intel 系ハードウェア向けに最適化された推論 runtime です。ONNX ファイルを中間表現へ
-    変換し、`compile_model` の時点で対象デバイス向けのカーネルを生成します。
+    OpenVINO は Intel 系ハードウェア向けに最適化された推論 runtime である。ONNX ファイルを中間表現へ
+    変換し、`compile_model` の時点で対象デバイス向けのカーネルを生成する。
 
-    GPU で動かすこともできますが、対象は Intel の内蔵 GPU や Arc であり、NVIDIA GPU は扱えません。
-    実際にこの環境の `available_devices` は `CPU` だけです（「実行環境の記録」の表を参照）。
-    そのため OpenVINO は CPU での比較に限定します。
+    GPU で動かすこともできるが、対象は Intel の内蔵 GPU や Arc であり、NVIDIA GPU は扱えない。
+    実際にこの環境の `available_devices` は `CPU` だけである（「実行環境の記録」の表を参照）。
+    そのため OpenVINO は CPU での比較に限定する。
 
     - 入力：前のセルで書き出した `onnx_path`
     - 処理：`convert_model` → `compile_model("CPU")`。CPU の推論 runtime どうしを比べるのが目的
-      なので device を明示し、実際に使われた device を `EXECUTION_DEVICES` から記録して確認します
+      なので device を明示し、実際に使われた device を `EXECUTION_DEVICES` から記録して確認する
     - 出力：`openvino_logits`、`compiled_model`、`openvino_device`、`openvino_setup_ms`
     """)
     return
@@ -559,18 +559,18 @@ def _():
     mo.md(r"""
     ## 4. ExecuTorch
 
-    ExecuTorch はスマートフォンや組み込み機器での実行を想定した PyTorch の runtime です。ここまでの
-    3 つと違い、**入力 shape ごとに事前コンパイル（AOT）した `.pte` を作る**点が特徴です。実行時に
-    グラフを組み替えないぶん、必要なメモリを静的に決められます。
+    ExecuTorch はスマートフォンや組み込み機器での実行を想定した PyTorch の runtime である。ここまでの
+    3 つと違い、**入力 shape ごとに事前コンパイル（AOT）した `.pte` を作る**点が特徴である。実行時に
+    グラフを組み替えないぶん、必要なメモリを静的に決められる。
 
-    変換は 3 段階です。
+    変換は 3 段階である。
 
-    1. `torch.export.export`：モデルを ATen 演算のグラフへ変換します（batch size は固定）
+    1. `torch.export.export`：モデルを ATen 演算のグラフへ変換する（batch size は固定）
     2. `to_edge_transform_and_lower`：edge 方言へ落とし、`partitioner` に渡した backend が扱える
-       部分グラフを delegate として切り出します
-    3. `to_executorch`：メモリ計画まで済ませた `.pte` を生成します
+       部分グラフを delegate として切り出す
+    3. `to_executorch`：メモリ計画まで済ませた `.pte` を生成する
 
-    `build_executorch_method()` はこの一連の処理をまとめた関数です。
+    `build_executorch_method()` はこの一連の処理をまとめた関数である。
 
     - 入力：`module`（CPU 上の `nn.Module`）、`sample`（この shape 専用に固めるための入力）、
       `partition`（CPU 向けの XNNPACK backend へ delegate するなら `True`、参照実装の
@@ -617,22 +617,22 @@ def _():
     mo.md(r"""
     ## 出力の一致
 
-    基準となる `cpu_model` の logits と、各変換先の logits の最大絶対差を比べます。予測ラベルは
-    どの runtime でも完全に一致しますが、演算の順序や融合の仕方、そして**使う数値形式**が
-    runtime ごとに違うため、差がちょうど 0 になるとは限りません。ONNX Runtime は CPU EP と
-    CUDA EP を別々に検査するので、**GPU で実行したときに何がどれだけ変わるか**も確認できます。
+    基準となる `cpu_model` の logits と、各変換先の logits の最大絶対差を比べる。予測ラベルは
+    どの runtime でも完全に一致するが、演算の順序や融合の仕方、そして**使う数値形式**が
+    runtime ごとに違うため、差がちょうど 0 になるとは限らない。ONNX Runtime は CPU EP と
+    CUDA EP を別々に検査するので、**GPU で実行したときに何がどれだけ変わるか**も確認できる。
 
-    一致は文章で主張するだけでなく、`assert` で検査します。将来 runtime や環境が変わって出力が
-    ずれた場合、このセルが失敗して page の生成自体が止まるため、誤った主張が公開されません。
+    一致は文章で主張するだけでなく、`assert` で検査する。将来 runtime や環境が変わって出力が
+    ずれた場合、このセルが失敗して page の生成自体が止まるため、誤った主張が公開されない。
 
-    ただし **GPU だけは許容誤差を分けています**。Ampere 世代以降の NVIDIA GPU では、ONNX Runtime の
-    CUDA EP が畳み込みに既定で **TF32** を使います。TF32 は指数部を float32 と同じにしたまま仮数部を
-    10 bit に減らす形式で、行列積を大幅に速くする代わりに精度が落ちます。実際、provider option
-    `use_tf32: 0` を渡して TF32 を無効にすると、差は CPU と同じ水準まで小さくなります。下の表では
-    既定と TF32 無効の両方を並べて、この違いを確認できるようにしました。
+    ただし **GPU だけは許容誤差を分けている**。Ampere 世代以降の NVIDIA GPU では、ONNX Runtime の
+    CUDA EP が畳み込みに既定で **TF32** を使う。TF32 は指数部を float32 と同じにしたまま仮数部を
+    10 bit に減らす形式で、行列積を大幅に速くする代わりに精度が落ちる。実際、provider option
+    `use_tf32: 0` を渡して TF32 を無効にすると、差は CPU と同じ水準まで小さくなる。下の表では
+    既定と TF32 無効の両方を並べて、この違いを確認できるようにした。
 
     - 許容誤差：float32 で計算する runtime は `1e-4` 未満、TF32 を使う CUDA EP の既定は `5e-3` 未満
-    - どの runtime でも**予測ラベルは基準と完全一致**することを要求します
+    - どの runtime でも**予測ラベルは基準と完全一致**することを要求する
     - 出力：`comparison_frame` = runtime ごとの最大絶対差と許容値、`prediction_table` = 8 枚の予測、
       `note_frame` = 利用できず比較から外した runtime の一覧
     """)
@@ -693,29 +693,29 @@ def _():
     ## 推論時間の測り方
 
     同じ重み・同じ入力に対して、batch size を 1・8・64・256 と変えながら 1 回の推論にかかる時間を
-    測ります。測定条件は次のとおりです。
+    測る。測定条件は次のとおりである。
 
-    - **warmup を「5 回以上、かつ合計 0.3 秒以上」実行してから測ります**。初回の呼び出しには
+    - **warmup を「5 回以上、かつ合計 0.3 秒以上」実行してから測る**。初回の呼び出しには
       cuDNN のアルゴリズム選択、メモリアリーナの確保、遅延初期化といった一度きりのコストが
-      含まれるためです。加えて GPU は負荷がかかるまでクロックが上がらないので、測定を始める前に
-      1 秒間だけ空回ししておきます
-    - 各測定の直前に 0.1 秒待ちます。ONNX Runtime や XNNPACK のスレッドプールは仕事が終わった
-      あともしばらく spin して CPU を占有するため、直前に測った runtime の影響を受けないようにします
-    - 30 回測って**中央値**を採ります。平均だと OS のスケジューリングによる外れ値に引きずられます
-      （1 回が 5 ms を下回る条件では、複数回をまとめて計測して 1 回あたりに割り戻します。
-      また 1 つの条件が 2.5 秒を超える場合は途中で打ち切ります）
-    - GPU を使う条件（PyTorch の 2 つと ONNX Runtime CUDA）は、CPU の runtime より先に測ります。
-      CPU 側のスレッドプールの影響を受けにくくするためです
-    - PyTorch の GPU 実行は非同期なので、`synchronize()` で完了を待ってから時刻を読みます。
-      ONNX Runtime の `run()` は結果を host へ返して戻るため、同期は不要です
-    - PyTorch の GPU は「計算のみ」と「入力の転送と結果の取り出しを含む」の 2 通りを測ります。実際の
-      アプリケーションで支払うのは後者です。ONNX Runtime CUDA は NumPy 配列を受け渡す API のため
-      常に転送込みで、PyTorch の「転送込み」と比べるのが公平です
-    - ExecuTorch は batch size ごとに `.pte` を作り直します（AOT で shape を固定するため）。
-      ONNX Runtime と OpenVINO は batch 次元を可変にしたモデルを使い回します
+      含まれるためである。加えて GPU は負荷がかかるまでクロックが上がらないので、測定を始める前に
+      1 秒間だけ空回ししておく
+    - 各測定の直前に 0.1 秒待つ。ONNX Runtime や XNNPACK のスレッドプールは仕事が終わった
+      あともしばらく spin して CPU を占有するため、直前に測った runtime の影響を受けないようにする
+    - 30 回測って**中央値**を採る。平均だと OS のスケジューリングによる外れ値に引きずられる
+      （1 回が 5 ms を下回る条件では、複数回をまとめて計測して 1 回あたりに割り戻す。
+      また 1 つの条件が 2.5 秒を超える場合は途中で打ち切る）
+    - GPU を使う条件（PyTorch の 2 つと ONNX Runtime CUDA）は、CPU の runtime より先に測る。
+      CPU 側のスレッドプールの影響を受けにくくするためである
+    - PyTorch の GPU 実行は非同期なので、`synchronize()` で完了を待ってから時刻を読む。
+      ONNX Runtime の `run()` は結果を host へ返して戻るため、同期は不要である
+    - PyTorch の GPU は「計算のみ」と「入力の転送と結果の取り出しを含む」の 2 通りを測る。実際の
+      アプリケーションで支払うのは後者である。ONNX Runtime CUDA は NumPy 配列を受け渡す API のため
+      常に転送込みで、PyTorch の「転送込み」と比べるのが公平である
+    - ExecuTorch は batch size ごとに `.pte` を作り直す（AOT で shape を固定するため）。
+      ONNX Runtime と OpenVINO は batch 次元を可変にしたモデルを使い回す
 
-    続く 4 セルで、測定用のヘルパー、測定に使う入力、GPU 用のモデルと GPU の warm-up を用意します。
-    `measure_ms()` は `call()` を繰り返し実行し、1 回あたりの所要時間の中央値 [ms] を返します。
+    続く 4 セルで、測定用のヘルパー、測定に使う入力、GPU 用のモデルと GPU の warm-up を用意する。
+    `measure_ms()` は `call()` を繰り返し実行し、1 回あたりの所要時間の中央値 [ms] を返す。
     """)
     return
 
@@ -786,12 +786,12 @@ def _(bench_pool, device, device_model, synchronize):
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    次のセルが測定の本体です。batch size ごとに入力を切り出し、利用できる runtime を順に測って
-    `latency_frame` に記録します。
+    次のセルが測定の本体である。batch size ごとに入力を切り出し、利用できる runtime を順に測って
+    `latency_frame` に記録する。
 
     - 出力：`latency_frame` = 列 `batch_size`・`runtime`・`latency_ms`（1 回の推論時間の中央値）・
       `per_image_us`（1 画像あたりに換算した時間）
-    - GPU が無い環境では GPU の行が現れず、CPU の runtime だけが比較されます
+    - GPU が無い環境では GPU の行が現れず、CPU の runtime だけが比較される
     """)
     return
 
@@ -858,9 +858,9 @@ def _():
     mo.md(r"""
     ## 測定結果
 
-    上の表が 1 回の推論にかかる時間 [ms]、下の表が 1 画像あたりに換算した時間 [µs] です。
-    行が runtime、列 `batch=N` が batch size です。`batch=64` なら、64 枚を 1 回の呼び出しで
-    まとめて推論したときの時間を表します。
+    上の表が 1 回の推論にかかる時間 [ms]、下の表が 1 画像あたりに換算した時間 [µs] である。
+    行が runtime、列 `batch=N` が batch size である。`batch=64` なら、64 枚を 1 回の呼び出しで
+    まとめて推論したときの時間を表す。
     """)
     return
 
@@ -905,13 +905,13 @@ def _():
     mo.md(r"""
     ## backend を外すとどうなるか（ExecuTorch）
 
-    ExecuTorch の速度は delegate する backend に強く依存します。`partition=False` で変換すると、
-    どの環境でも動くことを優先した参照実装（portable kernels）だけで実行されます。同じ `.pte` 形式・
-    同じ重みでも、XNNPACK へ delegate した場合と桁違いの差が出ることを確認します。
+    ExecuTorch の速度は delegate する backend に強く依存する。`partition=False` で変換すると、
+    どの環境でも動くことを優先した参照実装（portable kernels）だけで実行される。同じ `.pte` 形式・
+    同じ重みでも、XNNPACK へ delegate した場合と桁違いの差が出ることを確認する。
 
     - 入力：`cpu_model`、`cpu_input`（8 枚）
-    - 処理：`partition=False` で `.pte` を作り、5 回測って中央値を採ります（非常に遅いため回数を
-      減らしています）
+    - 処理：`partition=False` で `.pte` を作り、5 回測って中央値を採る（非常に遅いため回数を
+      減らしている）
     - 出力：`backend_frame` = backend ごとの推論時間と、XNNPACK に対する倍率
     """)
     return
@@ -940,13 +940,13 @@ def _():
     mo.md(r"""
     ## 一度きりのコスト
 
-    推論時間の比較には現れませんが、変換・最適化・コンパイルにかかる時間も配置先を選ぶ材料に
-    なります。ここまでのセルで測った所要時間をまとめます。TorchScript は保存と読み込み、ONNX は
+    推論時間の比較には現れないが、変換・最適化・コンパイルにかかる時間も配置先を選ぶ材料に
+    なる。ここまでのセルで測った所要時間をまとめる。TorchScript は保存と読み込み、ONNX は
     export と session 作成、ExecuTorch は `.pte` の書き出しと method の読み込みまでを含み、いずれも
-    「実行できる状態になるまで」を測っています。OpenVINO と ONNX Runtime の CUDA session だけは
-    前のセルで書き出した ONNX を入力とするため、ONNX export の時間は含みません。ExecuTorch は
+    「実行できる状態になるまで」を測っている。OpenVINO と ONNX Runtime の CUDA session だけは
+    前のセルで書き出した ONNX を入力とするため、ONNX export の時間は含まない。ExecuTorch は
     batch size ごとにこの時間を
-    払う点と、この表の値には初回だけ発生する module の import 時間も含まれる点に注意してください。
+    払う点と、この表の値には初回だけ発生する module の import 時間も含まれる点に注意する。
     """)
     return
 
@@ -971,84 +971,84 @@ def _():
     mo.md(r"""
     ## なぜプラットフォームで差が出るのか
 
-    測定結果の傾向と、その理由を整理します。数値は上の表を参照してください。
+    測定結果の傾向と、その理由を整理する。数値は上の表を参照。
 
     ### batch size が小さいと GPU は速くならない
 
-    batch size が 1 のとき、GPU の推論時間は CPU の runtime と同程度かむしろ遅くなります。この
+    batch size が 1 のとき、GPU の推論時間は CPU の runtime と同程度かむしろ遅くなる。この
     領域では実際の計算よりも、**カーネル起動（数十 µs × 層数）と PCIe 経由のデータ転送**という
-    固定費が支配的だからです。batch size を増やすと、この固定費が多数の画像で薄まり、かつ数千の
-    演算器を同時に使えるようになるため、1 画像あたりの時間が急激に下がります。「転送込み」は
+    固定費が支配的だからである。batch size を増やすと、この固定費が多数の画像で薄まり、かつ数千の
+    演算器を同時に使えるようになるため、1 画像あたりの時間が急激に下がる。「転送込み」は
     host から device への転送・結果の取り出し・同期まで含めた実運用に近い値で、「計算のみ」との差は
-    1 ms 未満です。この差は測定ごとのばらつきと同程度なので、batch size に対する傾向として
-    読み取ることはできません。
+    1 ms 未満である。この差は測定ごとのばらつきと同程度なので、batch size に対する傾向として
+    読み取ることはできない。
 
     ### 推論専用 runtime は大きい batch で効く
 
     ONNX Runtime・OpenVINO・ExecuTorch(XNNPACK) は、モデルを読み込んだ時点でグラフ全体を最適化
-    します。
+    する。
 
-    - 定数の畳み込みと、Conv と ReLU のような連続する演算の融合により、中間 tensor の書き戻しが減ります
-    - 畳み込みに適したメモリ配置へあらかじめ変換し、重みも並べ替えておけます
-    - 実行時に確保するメモリの計画を事前に立てられます
+    - 定数の畳み込みと、Conv と ReLU のような連続する演算の融合により、中間 tensor の書き戻しが減る
+    - 畳み込みに適したメモリ配置へあらかじめ変換し、重みも並べ替えておける
+    - 実行時に確保するメモリの計画を事前に立てられる
 
     一方 PyTorch eager は、呼び出しのたびに Python から 1 演算ずつ dispatch し、中間 tensor を都度
-    確保します。柔軟さと引き換えのオーバーヘッドで、計算量が増える大きい batch では推論専用 runtime が
-    eager の数倍速くなります（正確な倍率は測定のたびに変わるため、上の表の値を参照してください）。
+    確保する。柔軟さと引き換えのオーバーヘッドで、計算量が増える大きい batch では推論専用 runtime が
+    eager の数倍速くなる（正確な倍率は測定のたびに変わるため、上の表の値を参照）。
 
-    ただし**小さい batch では逆転しうる**点に注意してください。上の表の batch size 1 の行が示すと
+    ただし**小さい batch では逆転しうる**点に注意する。上の表の batch size 1 の行が示すと
     おり、推論専用 runtime が必ず eager より速いわけではなく、この環境では ExecuTorch が eager より
-    遅く測れています。1 回の呼び出しあたりの固定費（入力の受け渡し、
-    動的 shape の解決、自前のスレッドプールへの仕事の割り当て）が、実際の計算より大きくなるためです。
-    同じ理由で、どの runtime が最速かは batch size によって入れ替わります。
+    遅く測れている。1 回の呼び出しあたりの固定費（入力の受け渡し、
+    動的 shape の解決、自前のスレッドプールへの仕事の割り当て）が、実際の計算より大きくなるためである。
+    同じ理由で、どの runtime が最速かは batch size によって入れ替わる。
 
     ### 同じ ONNX でも実行先で速度も数値も変わる
 
-    ONNX Runtime は同じファイル・同じ重みのまま EP を差し替えるだけで実行先を変えられます。
+    ONNX Runtime は同じファイル・同じ重みのまま EP を差し替えるだけで実行先を変えられる。
     上の表の `ONNX Runtime (CPU)` と `ONNX Runtime (CUDA) 転送込み` は、**モデル以外の条件を
-    揃えたうえで CPU と GPU を比べた値**です。CUDA EP は host との転送を毎回含むため、小さい
-    batch では CPU EP に勝てず、batch を大きくするほど有利になります。
+    揃えたうえで CPU と GPU を比べた値**である。CUDA EP は host との転送を毎回含むため、小さい
+    batch では CPU EP に勝てず、batch を大きくするほど有利になる。
 
-    変わるのは速度だけではありません。CUDA EP は既定で TF32 を使うため、出力の一致表で見たとおり
-    CPU EP より 1 桁以上大きい差が出ます。予測ラベルは変わりませんでしたが、**実行先を変えると
-    数値も変わりうる**ことは、回帰テストの許容誤差を決めるときに効いてきます。
+    変わるのは速度だけではない。CUDA EP は既定で TF32 を使うため、出力の一致表で見たとおり
+    CPU EP より 1 桁以上大きい差が出る。予測ラベルは変わらなかったが、**実行先を変えると
+    数値も変わりうる**ことは、回帰テストの許容誤差を決めるときに効いてくる。
 
-    なお GPU を使えるかどうかは runtime に依存します。OpenVINO の GPU プラグインは Intel 製 GPU
-    専用で、この環境の NVIDIA GPU は対象外です。ExecuTorch の XNNPACK backend も CPU 専用です。
+    なお GPU を使えるかどうかは runtime に依存する。OpenVINO の GPU プラグインは Intel 製 GPU
+    専用で、この環境の NVIDIA GPU は対象外である。ExecuTorch の XNNPACK backend も CPU 専用である。
     「GPU 対応」と言うときは、**どの runtime のどの backend が、どのベンダの GPU に対応するか**まで
-    確認する必要があります。
+    確認する必要がある。
 
     ### TorchScript は eager とほとんど変わらない
 
-    TorchScript は Python インタプリタを介さずに実行できますが、呼び出すカーネルは eager と同じ
-    ATen 実装です。したがって差が出るのは、Python 側のオーバーヘッドが相対的に大きい小さい batch
-    だけで、畳み込みの計算そのものが支配的になる大きい batch では eager とほぼ同じになります。
+    TorchScript は Python インタプリタを介さずに実行できるが、呼び出すカーネルは eager と同じ
+    ATen 実装である。したがって差が出るのは、Python 側のオーバーヘッドが相対的に大きい小さい batch
+    だけで、畳み込みの計算そのものが支配的になる大きい batch では eager とほぼ同じになる。
     「script 化すれば速くなる」わけではなく、TorchScript の主目的は Python 非依存の配布形式である
-    ことが読み取れます。
+    ことが読み取れる。
 
     ### ExecuTorch は backend 次第
 
-    ExecuTorch は runtime 自体を小さく保ち、演算の実装は backend に委ねる設計です。参照実装の
+    ExecuTorch は runtime 自体を小さく保ち、演算の実装は backend に委ねる設計である。参照実装の
     portable kernels は可搬性を最優先しているため 2 桁以上遅く、XNNPACK へ delegate して初めて他の
-    CPU runtime と同じ土俵に乗ります。ExecuTorch の性能を評価するときは、**どの backend へ
-    delegate されたか**を必ず確認する必要があります。
+    CPU runtime と同じ土俵に乗る。ExecuTorch の性能を評価するときは、**どの backend へ
+    delegate されたか**を必ず確認する必要がある。
 
     ### 静的 shape か動的 shape か
 
-    ExecuTorch は AOT の時点で shape を固定し、メモリ計画まで決めてしまいます。実行時の判断が
-    減るぶん組み込み機器で扱いやすい反面、batch size ごとに `.pte` を作り直す必要があります。
-    ONNX Runtime と OpenVINO は batch 次元を可変にできますが、その代わり実行のたびに shape に
-    応じた処理が入ります。用途が「固定 shape で繰り返し推論する端末」なのか「入力サイズが変わる
-    サーバ」なのかで、選ぶべき経路が変わります。
+    ExecuTorch は AOT の時点で shape を固定し、メモリ計画まで決めてしまう。実行時の判断が
+    減るぶん組み込み機器で扱いやすい反面、batch size ごとに `.pte` を作り直す必要がある。
+    ONNX Runtime と OpenVINO は batch 次元を可変にできるが、その代わり実行のたびに shape に
+    応じた処理が入る。用途が「固定 shape で繰り返し推論する端末」なのか「入力サイズが変わる
+    サーバ」なのかで、選ぶべき経路が変わる。
 
     ### 測定値を読むときの注意
 
-    ここまでの数値は「実行環境の記録」の表にあるマシンで測ったものです。CPU の世代と利用可能な
-    SIMD 命令、割り当てスレッド数、GPU の種類、OS（この環境は WSL2）によって傾向は変わります。
-    特に **1 画像あたりの時間は batch size に対して単調に減るとは限りません**。上の表でも、
-    CPU の runtime のいくつかは途中で悪化しています。小さい batch では固定費が、
-    大きい batch ではメモリ帯域とキャッシュの効き方が効くためです。自分の配置環境で、実際に使う
-    batch size で測り直すことが重要です。
+    ここまでの数値は「実行環境の記録」の表にあるマシンで測ったものである。CPU の世代と利用可能な
+    SIMD 命令、割り当てスレッド数、GPU の種類、OS（この環境は WSL2）によって傾向は変わる。
+    特に **1 画像あたりの時間は batch size に対して単調に減るとは限らない**。上の表でも、
+    CPU の runtime のいくつかは途中で悪化している。小さい batch では固定費が、
+    大きい batch ではメモリ帯域とキャッシュの効き方が効くためである。自分の配置環境で、実際に使う
+    batch size で測り直すことが重要である。
     """)
     return
 
@@ -1058,8 +1058,8 @@ def _():
     mo.md(r"""
     ## 生成物の削除
 
-    比較に使った `.pt`・`.onnx`・`.pte` を削除し、一時ディレクトリを片付けます。measurement 用の
-    セルより後に実行されるよう、測定結果を入力として受け取っています。
+    比較に使った `.pt`・`.onnx`・`.pte` を削除し、一時ディレクトリを片付ける。measurement 用の
+    セルより後に実行されるよう、測定結果を入力として受け取っている。
     """)
     return
 
@@ -1084,19 +1084,19 @@ def _():
     ## まとめ
 
     - 学習済みの重みは、TorchScript・ONNX Runtime・OpenVINO・ExecuTorch のいずれへ変換しても
-      予測ラベルが一致しました。CPU で実行する限り logits の差も float32 の丸め誤差の範囲です
-    - ただし CUDA EP は既定で TF32 を使うため、GPU では差が 1 桁以上大きくなります。**実行先を
-      変えると数値も変わりうる**ので、許容誤差は runtime と device ごとに決める必要があります
-    - 一方で推論時間は、同じモデルでもプラットフォームによって桁単位で変わります。決めるのは
+      予測ラベルが一致した。CPU で実行する限り logits の差も float32 の丸め誤差の範囲である
+    - ただし CUDA EP は既定で TF32 を使うため、GPU では差が 1 桁以上大きくなる。**実行先を
+      変えると数値も変わりうる**ので、許容誤差は runtime と device ごとに決める必要がある
+    - 一方で推論時間は、同じモデルでもプラットフォームによって桁単位で変わる。決めるのは
       「CPU か GPU か」だけではなく、**batch size・推論 runtime・delegate する backend**の
-      組み合わせです
-    - GPU は batch をまとめられる用途で効きます。1 件ずつ低遅延で返す用途では、CPU の推論専用
+      組み合わせである
+    - GPU は batch をまとめられる用途で効く。1 件ずつ低遅延で返す用途では、CPU の推論専用
       runtime のほうが速く、この環境では batch size 1 で ONNX Runtime の CPU EP が
-      GPU の条件より速く応答しました
-    - GPU を使えるかは runtime 依存です。ONNX Runtime は EP を差し替えるだけで CPU と CUDA を
-      切り替えられますが、OpenVINO の GPU は Intel 製 GPU 専用、ExecuTorch の XNNPACK は CPU 専用です
-    - 端末側で動かすなら ExecuTorch のように AOT で shape を固定する経路が向きますが、backend を
-      delegate しなければ性能は出ません
+      GPU の条件より速く応答した
+    - GPU を使えるかは runtime 依存である。ONNX Runtime は EP を差し替えるだけで CPU と CUDA を
+      切り替えられるが、OpenVINO の GPU は Intel 製 GPU 専用、ExecuTorch の XNNPACK は CPU 専用である
+    - 端末側で動かすなら ExecuTorch のように AOT で shape を固定する経路が向くが、backend を
+      delegate しなければ性能は出ない
     """)
     return
 

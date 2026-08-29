@@ -12,7 +12,7 @@ with app.setup:
 def _():
     mo.md(r"""
     # 境界値問題と固有値問題
-    legacy/simulation/PDE_BVP.ipynb を marimo 向けに整理し、1 次元シュレディンガー方程式と 2 次元ポアソン方程式を差分法で扱います。
+    legacy/simulation/PDE_BVP.ipynb を marimo 向けに整理し、1 次元シュレディンガー方程式と 2 次元ポアソン方程式を差分法で扱う。
     """)
     return
 

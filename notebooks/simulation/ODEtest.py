@@ -12,7 +12,7 @@ with app.setup:
 def _():
     mo.md(r"""
     # ODE ソルバーの基本例
-    legacy/simulation/ODEtest.ipynb を marimo 向けに整理し、調和振動子を SciPy の `ode` で解きます。
+    legacy/simulation/ODEtest.ipynb を marimo 向けに整理し、調和振動子を SciPy の `ode` で解く。
     """)
     return
 

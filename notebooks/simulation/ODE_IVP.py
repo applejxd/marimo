@@ -12,7 +12,7 @@ with app.setup:
 def _():
     mo.md(r"""
     # 常微分方程式の初期値問題
-    legacy/simulation/ODE_IVP.ipynb を marimo 向けに整理し、軌道計算を題材に各種 ODE 積分法の性質を比較します。
+    legacy/simulation/ODE_IVP.ipynb を marimo 向けに整理し、軌道計算を題材に各種 ODE 積分法の性質を比較する。
     """)
     return
 

@@ -17,10 +17,10 @@ def _():
     mo.md(r"""
     # Keras オートエンコーダで異常検知
 
-    元 notebook は Kaggle の credit-card fraud データセットを API token で取得していました。
+    元 notebook は Kaggle の credit-card fraud データセットを API token で取得していた。
     この marimo 版では秘密情報を使わずに再現できることを優先し、
-    `sklearn.make_classification` で作る不均衡な疑似トランザクションデータへ置き換えています。
-    正常データで自己再構成を学習し、再構成誤差で異常を検出する意図はそのままです。
+    `sklearn.make_classification` で作る不均衡な疑似トランザクションデータへ置き換えている。
+    正常データで自己再構成を学習し、再構成誤差で異常を検出する意図はそのままである。
     """)
     return
 

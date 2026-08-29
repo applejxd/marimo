@@ -12,7 +12,7 @@ with app.setup:
 def _():
     mo.md(r"""
     # 非線形方程式の数値解法
-    legacy/simulation/NonLinear.ipynb を marimo 向けに整理し、二分法・はさみうち法・ニュートン法・割線法を比較します。
+    legacy/simulation/NonLinear.ipynb を marimo 向けに整理し、二分法・はさみうち法・ニュートン法・割線法を比較する。
     """)
     return
 
