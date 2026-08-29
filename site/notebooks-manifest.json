@@ -37,8 +37,8 @@
     },
     "algorithm/mining.py": {
       "html": "algorithm/mining.html",
-      "html_sha256": "f4d5b3a72558ee6d0c435f212390c4bc1192d4d39788d884eaf756528554c902",
-      "source_sha256": "49b03fa96faaa88b9e2bfba0bfec15011fca017125f09e9dc89ea37371fc31eb"
+      "html_sha256": "36a7c74a72c264fce53ec27fcc8501efde0f42abfdaba418da37b92136d3a129",
+      "source_sha256": "32997ec89fac1987551f1c48f82d7b4fee68e74028b89b16e8bbe52335890aa4"
     },
     "algorithm/sort_tracking.py": {
       "html": "algorithm/sort_tracking.html",
