@@ -25,6 +25,61 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ## この notebook の共通部品
+
+    次のセルは、以降のすべてのアニメーションが共有する出力先とヘルパーを用意する。
+
+    - `artifacts_dir`: GIF の保存先 `notebooks/algorithm/_generated/kalman/`。
+      Git の追跡対象外なので、実行するたびに再生成される。
+    - `gif_image(path, alt)`: GIF を base64 の data URI に変換して `mo.image` で
+      埋め込む。静的 HTML へ書き出したときも外部ファイルを参照せずに再生できる。
+    - `save_gif(fig, update, frames, path, interval)`: `FuncAnimation` を GIF として
+      保存する。`frames` にはコマ数（`int`）かコマ番号の並び（`range` など）を渡す。
+      `interval` は 1 コマの表示時間（ミリ秒）である。GIF は表示時間を 1/100 秒単位で
+      しか保持できないため、要求した値がそのまま使われるとは限らない。保存後に
+      GIF を読み直し、実際の間隔・再生時間・ファイルサイズを測って返す。
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    import base64
+    from pathlib import Path
+
+    import matplotlib.animation as animation
+    import matplotlib.pyplot as plt
+    from PIL import Image
+
+    artifacts_dir = Path(__file__).resolve().parent / "_generated" / "kalman"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+    def gif_image(path: Path, alt: str):
+        encoded = base64.b64encode(path.read_bytes()).decode()
+        return mo.image(f"data:image/gif;base64,{encoded}", alt=alt)
+
+    def save_gif(fig, update, frames, path: Path, interval: int) -> str:
+        frame_list = list(range(frames)) if isinstance(frames, int) else list(frames)
+        anim = animation.FuncAnimation(fig, update, frames=frame_list, interval=interval)
+        anim.save(path, writer="pillow")
+        plt.close(fig)
+        # GIF は間隔を 1/100 秒単位でしか保持できないので、保存後に実測して報告する。
+        with Image.open(path) as gif:
+            durations = []
+            for index in range(gif.n_frames):
+                gif.seek(index)
+                durations.append(gif.info.get("duration", 0))
+        return (
+            f"{path.name}: {len(frame_list)} frames, {durations[0]} ms/frame, "
+            f"{sum(durations) / 1000:.1f} s, {path.stat().st_size / 1024:.0f} KiB"
+        )
+
+    return artifacts_dir, gif_image, save_gif
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## Kalman Filters from scratch
     """)
     return
@@ -117,9 +172,7 @@ def _(mo):
 
 
 @app.cell
-def _(blue, circle_ax, circle_fig, mo, orange, points, plt_circle):
-    import matplotlib.animation as animation_circle
-
+def _(artifacts_dir, blue, circle_ax, circle_fig, gif_image, orange, points, save_gif):
     circle_traj_plt, = circle_ax.plot([], [], c=blue, label='Trajectory')
     circle_cur_pos_plt, = circle_ax.plot([], [], c=orange, marker='o', markersize=5, label='Current Position')
     circle_ax.legend(loc='upper right', fontsize='x-small')
@@ -129,11 +182,9 @@ def _(blue, circle_ax, circle_fig, mo, orange, points, plt_circle):
         circle_traj_plt.set_data(points[:i, 0], points[:i, 1])
         circle_cur_pos_plt.set_data([points[i, 0]], [points[i, 1]])
 
-    circle_ani = animation_circle.FuncAnimation(
-        circle_fig, circle_anim_callback, frames=points.shape[0]
-    )
-    move_animation = mo.Html(circle_ani.to_jshtml())
-    plt_circle.close(circle_fig)
+    circle_gif_path = artifacts_dir / "circle_motion.gif"
+    print(save_gif(circle_fig, circle_anim_callback, points.shape[0], circle_gif_path, 50))
+    move_animation = gif_image(circle_gif_path, "円運動する真値の軌跡")
     return (move_animation,)
 
 
@@ -454,24 +505,23 @@ def _(mo):
 
 @app.cell
 def _(
+    artifacts_dir,
     cov2ellipse,
     ekf_ax,
     ekf_fig,
+    gif_image,
     gt_pos_plt,
     gt_traj_plt,
     kalman_ellipse,
     kf_errors,
     kf_pos_plt,
     kf_states,
-    mo,
     obs_ellipse,
     obs_pos_scat,
     points,
     points_obs,
-    plt_ekf,
+    save_gif,
 ):
-    import matplotlib.animation as animation_ekf
-
     ekf_ax.legend(loc='upper right', fontsize='x-small')
 
     def ekf_anim_callback(i):
@@ -487,9 +537,9 @@ def _(
         kalman_ellipse.set_height(height)
         kalman_ellipse.set_angle(angle)
 
-    ekf_ani = animation_ekf.FuncAnimation(ekf_fig, ekf_anim_callback, frames=len(points_obs))
-    ekf_animation = mo.Html(ekf_ani.to_jshtml())
-    plt_ekf.close(ekf_fig)
+    ekf_gif_path = artifacts_dir / "ekf.gif"
+    print(save_gif(ekf_fig, ekf_anim_callback, len(points_obs), ekf_gif_path, 50))
+    ekf_animation = gif_image(ekf_gif_path, "EKF による円運動の推定")
     return (ekf_animation,)
 
 
@@ -726,24 +776,23 @@ def _(mo):
 
 @app.cell
 def _(
+    artifacts_dir,
     cov2ellipse,
+    gif_image,
     gt_pos_plt_1,
     gt_traj_plt_1,
     kalman_ellipse_1,
     kf_errors_1,
     kf_pos_plt_1,
     kf_states_1,
-    mo,
     obs_ellipse_1,
     obs_pos_scat_1,
     points,
     points_obs,
-    plt_ukf,
+    save_gif,
     ukf_ax,
     ukf_fig,
 ):
-    import matplotlib.animation as animation_ukf
-
     ukf_ax.legend(loc='upper right', fontsize='x-small')
 
     def ukf_anim_callback(i):
@@ -759,9 +808,9 @@ def _(
         kalman_ellipse_1.set_height(height)
         kalman_ellipse_1.set_angle(angle)
 
-    ukf_ani = animation_ukf.FuncAnimation(ukf_fig, ukf_anim_callback, frames=len(points_obs))
-    ukf_animation = mo.Html(ukf_ani.to_jshtml())
-    plt_ukf.close(ukf_fig)
+    ukf_gif_path = artifacts_dir / "ukf.gif"
+    print(save_gif(ukf_fig, ukf_anim_callback, len(points_obs), ukf_gif_path, 50))
+    ukf_animation = gif_image(ukf_gif_path, "UKF による円運動の推定")
     return (ukf_animation,)
 
 
@@ -920,24 +969,23 @@ def _(mo):
 
 @app.cell
 def _(
+    artifacts_dir,
     cov2ellipse,
     filterpy_ax,
     filterpy_fig,
+    filterpy_obs_pos_scat,
+    gif_image,
     gt_pos_plt_2,
     gt_traj_plt_2,
     kalman_ellipse_2,
     kf_errors_2,
     kf_pos_plt_2,
     kf_states_2,
-    filterpy_obs_pos_scat,
-    mo,
     obs_ellipse_2,
     points,
     points_obs,
-    plt_filterpy,
+    save_gif,
 ):
-    import matplotlib.animation as animation_filterpy
-
     filterpy_ax.legend(loc='upper right', fontsize='x-small')
 
     def filterpy_anim_callback(i):
@@ -953,11 +1001,9 @@ def _(
         kalman_ellipse_2.set_height(height)
         kalman_ellipse_2.set_angle(angle)
 
-    filterpy_ani = animation_filterpy.FuncAnimation(
-        filterpy_fig, filterpy_anim_callback, frames=len(points_obs)
-    )
-    filterpy_animation = mo.Html(filterpy_ani.to_jshtml())
-    plt_filterpy.close(filterpy_fig)
+    filterpy_gif_path = artifacts_dir / "filterpy_ekf.gif"
+    print(save_gif(filterpy_fig, filterpy_anim_callback, len(points_obs), filterpy_gif_path, 50))
+    filterpy_animation = gif_image(filterpy_gif_path, "FilterPy の EKF による円運動の推定")
     return (filterpy_animation,)
 
 
@@ -1171,20 +1217,19 @@ def _(blue, orange, red):
 @app.cell
 def _(
     Ellipse,
+    artifacts_dir,
     dp_ax,
     dp_cur_pos_plt,
     dp_fig,
     dp_obs_pos_scat,
     dp_traj_plt,
-    mo,
+    gif_image,
     noise_sigma,
     obs_list,
-    plt_dp,
     red,
+    save_gif,
     x_list,
 ):
-    import matplotlib.animation as animation_dp
-
     obs_ellipse_3 = Ellipse(xy=(0, 1), width=noise_sigma, height=noise_sigma, angle=0, color=red, alpha=0.1, animated=True)
     dp_ax.add_patch(obs_ellipse_3)
 
@@ -1196,9 +1241,9 @@ def _(
         obs_ellipse_3.set_center(obs_list[i, [2, 3]])
 
     skip = 4
-    dp_ani = animation_dp.FuncAnimation(dp_fig, dp_anim_callback, frames=range(0, len(obs_list), skip))
-    dp_animation = mo.Html(dp_ani.to_jshtml())
-    plt_dp.close(dp_fig)
+    dp_gif_path = artifacts_dir / "double_pendulum.gif"
+    print(save_gif(dp_fig, dp_anim_callback, range(0, len(obs_list), skip), dp_gif_path, 80))
+    dp_animation = gif_image(dp_gif_path, "二重振り子の真値と観測")
     return (dp_animation,)
 
 
@@ -1318,24 +1363,23 @@ def _(Ellipse, dp_ukf_ax, green, noise_sigma, red):
 
 @app.cell
 def _(
+    artifacts_dir,
     cov2ellipse,
     dp_ukf_ax,
     dp_ukf_fig,
+    gif_image,
     gt_pos_plt_3,
     gt_traj_plt_3,
     kalman_ellipse_3,
     kf_errors_3,
     kf_pos_plt_3,
     kf_states_3,
-    mo,
     obs_ellipse_4,
     obs_list,
     obs_pos_scat_3,
-    plt_dp_ukf,
+    save_gif,
     x_list,
 ):
-    import matplotlib.animation as animation_dp_ukf
-
     dp_ukf_ax.legend(loc='upper right', fontsize='x-small')
 
     def dp_ukf_anim_callback(i):
@@ -1351,11 +1395,18 @@ def _(
         kalman_ellipse_3.set_height(height)
         kalman_ellipse_3.set_angle(angle)
 
-    dp_ukf_ani = animation_dp_ukf.FuncAnimation(
-        dp_ukf_fig, dp_ukf_anim_callback, frames=range(0, len(obs_list), 2)
+    dp_ukf_skip = 4
+    dp_ukf_gif_path = artifacts_dir / "double_pendulum_ukf.gif"
+    print(
+        save_gif(
+            dp_ukf_fig,
+            dp_ukf_anim_callback,
+            range(0, len(obs_list), dp_ukf_skip),
+            dp_ukf_gif_path,
+            80,
+        )
     )
-    dp_ukf_animation = mo.Html(dp_ukf_ani.to_jshtml())
-    plt_dp_ukf.close(dp_ukf_fig)
+    dp_ukf_animation = gif_image(dp_ukf_gif_path, "UKF による二重振り子の推定")
     return (dp_ukf_animation,)
 
 
