@@ -27,8 +27,8 @@
     },
     "algorithm/linalg_eig.py": {
       "html": "algorithm/linalg_eig.html",
-      "html_sha256": "96348b785ae523ba5842efd088effd96c01114bf6c3378aa3e477c51446cbd36",
-      "source_sha256": "31243d4fddce10652a3b4a9bf86a05d0069086947bc3751d9110adbcdc936ce0"
+      "html_sha256": "5d348ef17901396dae296f9684faf3c89c84732e11a268cda41ee230cb574f54",
+      "source_sha256": "5eb1fe7de81fcce3940951d9d8ece8f00df283308ffc8091daadc34579cad632"
     },
     "algorithm/linalg_inv.py": {
       "html": "algorithm/linalg_inv.html",
