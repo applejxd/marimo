@@ -38,6 +38,9 @@ def _(mo):
       `interval` は 1 コマの表示時間（ミリ秒）である。GIF は表示時間を 1/100 秒単位で
       しか保持できないため、要求した値がそのまま使われるとは限らない。保存後に
       GIF を読み直し、実際の間隔・再生時間・ファイルサイズを測って返す。
+
+    以降の GIF はすべて `interval=100`（10 コマ/秒）に揃えてある。挙動を目で追う
+    には 20 コマ/秒では速すぎるため、意図的に落としてある。
     """)
     return
 
@@ -183,7 +186,7 @@ def _(artifacts_dir, blue, circle_ax, circle_fig, gif_image, orange, points, sav
         circle_cur_pos_plt.set_data([points[i, 0]], [points[i, 1]])
 
     circle_gif_path = artifacts_dir / "circle_motion.gif"
-    print(save_gif(circle_fig, circle_anim_callback, points.shape[0], circle_gif_path, 50))
+    print(save_gif(circle_fig, circle_anim_callback, points.shape[0], circle_gif_path, 100))
     move_animation = gif_image(circle_gif_path, "円運動する真値の軌跡")
     return (move_animation,)
 
@@ -538,7 +541,7 @@ def _(
         kalman_ellipse.set_angle(angle)
 
     ekf_gif_path = artifacts_dir / "ekf.gif"
-    print(save_gif(ekf_fig, ekf_anim_callback, len(points_obs), ekf_gif_path, 50))
+    print(save_gif(ekf_fig, ekf_anim_callback, len(points_obs), ekf_gif_path, 100))
     ekf_animation = gif_image(ekf_gif_path, "EKF による円運動の推定")
     return (ekf_animation,)
 
@@ -809,7 +812,7 @@ def _(
         kalman_ellipse_1.set_angle(angle)
 
     ukf_gif_path = artifacts_dir / "ukf.gif"
-    print(save_gif(ukf_fig, ukf_anim_callback, len(points_obs), ukf_gif_path, 50))
+    print(save_gif(ukf_fig, ukf_anim_callback, len(points_obs), ukf_gif_path, 100))
     ukf_animation = gif_image(ukf_gif_path, "UKF による円運動の推定")
     return (ukf_animation,)
 
@@ -1002,7 +1005,7 @@ def _(
         kalman_ellipse_2.set_angle(angle)
 
     filterpy_gif_path = artifacts_dir / "filterpy_ekf.gif"
-    print(save_gif(filterpy_fig, filterpy_anim_callback, len(points_obs), filterpy_gif_path, 50))
+    print(save_gif(filterpy_fig, filterpy_anim_callback, len(points_obs), filterpy_gif_path, 100))
     filterpy_animation = gif_image(filterpy_gif_path, "FilterPy の EKF による円運動の推定")
     return (filterpy_animation,)
 
@@ -1242,7 +1245,7 @@ def _(
 
     skip = 4
     dp_gif_path = artifacts_dir / "double_pendulum.gif"
-    print(save_gif(dp_fig, dp_anim_callback, range(0, len(obs_list), skip), dp_gif_path, 80))
+    print(save_gif(dp_fig, dp_anim_callback, range(0, len(obs_list), skip), dp_gif_path, 100))
     dp_animation = gif_image(dp_gif_path, "二重振り子の真値と観測")
     return (dp_animation,)
 
@@ -1403,7 +1406,7 @@ def _(
             dp_ukf_anim_callback,
             range(0, len(obs_list), dp_ukf_skip),
             dp_ukf_gif_path,
-            80,
+            100,
         )
     )
     dp_ukf_animation = gif_image(dp_ukf_gif_path, "UKF による二重振り子の推定")
