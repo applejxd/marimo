@@ -17,8 +17,8 @@
     },
     "algorithm/kalman.py": {
       "html": "algorithm/kalman.html",
-      "html_sha256": "ccf48cf025b731c0ed9db1e3e8ad5d11726faf3b7b623d36ace607c2b8b9e4d1",
-      "source_sha256": "8b3b423e6b554e934e5e3a64227a55336bbf0143ebcb42604b178fb2626db7ed"
+      "html_sha256": "8733bee2eb373996f29c6c3e0e5454336105426067fcc5c4b2bf592277931ae4",
+      "source_sha256": "3565709431ed2b644634cc5f5e4f78965d97872987d843033eb12f75dd82bac7"
     },
     "algorithm/kdtree.py": {
       "html": "algorithm/kdtree.html",
