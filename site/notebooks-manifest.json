@@ -12,8 +12,8 @@
     },
     "algorithm/fitting.py": {
       "html": "algorithm/fitting.html",
-      "html_sha256": "12132054091d6e5f081a84c4180deddce6c9c1f9a8cc47a48ef307513a2c986c",
-      "source_sha256": "96a166bc8596433768c9f6f2ed762abe67270bf9577b442203424cdc2fc16f5d"
+      "html_sha256": "7dd807fc30979d561248b7f7732103c3c6a5cfe879ac93ff83d7a42813032c4b",
+      "source_sha256": "546f79b2db083c3eaf0d8d57543d15687c2e40606a7181c597d534018ed43e72"
     },
     "algorithm/kalman.py": {
       "html": "algorithm/kalman.html",
