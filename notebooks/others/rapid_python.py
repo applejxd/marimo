@@ -6,6 +6,7 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
+    import asyncio
     import atexit
     import concurrent.futures as cf
     import ctypes
@@ -25,10 +26,12 @@ def _():
     from threading import Thread
 
     import dask.dataframe as dd
+    import httpx
     import marimo as mo
     import numpy as np
     import orjson
     import pandas as pd
+    import polars as pl
     import requests
     from numba import njit, prange
     from tqdm.contrib.concurrent import thread_map
@@ -52,6 +55,7 @@ def _():
         SimpleHTTPRequestHandler,
         Thread,
         ThreadingHTTPServer,
+        asyncio,
         atexit,
         cf,
         ctypes,
@@ -59,6 +63,7 @@ def _():
         dd,
         get_context,
         hashlib,
+        httpx,
         json,
         mo,
         njit,
@@ -67,6 +72,7 @@ def _():
         os,
         partial,
         pd,
+        pl,
         prange,
         requests,
         socket,
@@ -191,61 +197,118 @@ def _(mo):
     mo.md(r"""
     ## Numba による JIT コンパイル
 
-    ### 遅延コンパイルと事前コンパイル
+    ### 題材：非線形な縮約
+
+    JIT の効き方を見るために、1 次元配列に対する非線形な縮約
+    $\sum_i (\sin^2 x_i + \sqrt{x_i})$ を使う。要素数は 100 万。
+
+    この 1 つの題材で、次の 4 つをまとめて比べられる。
+
+    - 素の Python ループ
+    - NumPy によるベクトル化
+    - Numba の **遅延コンパイル**（型指定なし）と**事前コンパイル**（シグネチャ指定）
+    - Numba の **並列化**（`parallel=True`）
 
     `@njit` は Python の関数を LLVM 経由でネイティブコードへコンパイルする。
-    型指定を書かない**遅延コンパイル**では、最初の呼び出しで引数の型を見てから
-    コンパイルするため、初回だけ数百 ms のコンパイル時間が乗る。
-    デコレータに `"int32(int32, int32)"` のようにシグネチャを書く**事前コンパイル**では、
+    型指定を書かない遅延コンパイルでは、最初の呼び出しで引数の型を見てから
+    コンパイルするため、初回だけコンパイル時間が乗る。
+    デコレータに `"float64(float64[:])"` のようにシグネチャを書く事前コンパイルでは、
     デコレータ評価の時点でコンパイルが終わるので、初回の呼び出しから速い。
+    表の `lazy_njit_first` と `typed_njit_first` の差がそのコンパイル時間である。
 
-    題材はアッカーマン関数 `ack(3, 10)` で、再帰が非常に深い。
-    素の Python では既定の再帰上限を超えるため `sys.setrecursionlimit` を上げる。
+    `*_first` の行はコンパイル時間を見るためのものなので 1 回だけ測る。
+    それ以外の行は `benchmark` でウォームアップしてから複数回測った定常状態の値である。
+    最初の 1 回だけを測ると、配列の初回確保や並列版のスレッド起動が混ざって
+    実力より遅く出る。
     """)
     return
 
 
 @app.cell
-def _(njit, pd, sys, timed_call):
-    sys.setrecursionlimit(100000)
+def _(benchmark, np, njit, pd, prange, timed_call):
+    import math
 
-    def ack(m: int, n: int):
-        if m == 0:
-            return n + 1
-        if n == 0:
-            return ack(m - 1, 1)
-        return ack(m - 1, ack(m, n - 1))
+    REDUCE_SIZE = 1_000_000
+    reduce_input = np.linspace(0.1, 10.0, REDUCE_SIZE)
 
-    _, base_elapsed = timed_call("ack(3, 10) python", ack, 3, 10)
+    def reduce_python(values):
+        total = 0.0
+        for value in values:
+            total += math.sin(value) ** 2 + math.sqrt(value)
+        return total
+
+    def reduce_numpy(values):
+        return float((np.sin(values) ** 2 + np.sqrt(values)).sum())
 
     @njit(cache=False)
-    def lazy_ack(m, n):
-        if m == 0:
-            return n + 1
-        if n == 0:
-            return lazy_ack(m - 1, 1)
-        return lazy_ack(m - 1, lazy_ack(m, n - 1))
+    def reduce_lazy(values):
+        total = 0.0
+        for index in range(values.size):
+            total += math.sin(values[index]) ** 2 + math.sqrt(values[index])
+        return total
 
-    _, lazy_first = timed_call("lazy njit 1st (compile included)", lazy_ack, 3, 10)
-    _, lazy_second = timed_call("lazy njit 2nd", lazy_ack, 3, 10)
+    @njit("float64(float64[:])", cache=False)
+    def reduce_eager(values):
+        total = 0.0
+        for index in range(values.size):
+            total += math.sin(values[index]) ** 2 + math.sqrt(values[index])
+        return total
 
-    @njit("int32(int32, int32)", cache=False)
-    def eager_ack(m, n):
-        if m == 0:
-            return n + 1
-        if n == 0:
-            return eager_ack(m - 1, 1)
-        return eager_ack(m - 1, eager_ack(m, n - 1))
+    @njit("float64(float64[:])", cache=False, parallel=True, fastmath=True)
+    def reduce_parallel(values):
+        total = 0.0
+        for index in prange(values.size):
+            total += math.sin(values[index]) ** 2 + math.sqrt(values[index])
+        return total
 
-    _, eager_first = timed_call("typed njit 1st", eager_ack, 3, 10)
-    _, eager_second = timed_call("typed njit 2nd", eager_ack, 3, 10)
+    answer_py, elapsed_py = timed_call("python loop", reduce_python, reduce_input)
+    answer_lazy, lazy_first = timed_call("lazy njit 1st (compile included)", reduce_lazy, reduce_input)
+    answer_eager, eager_first = timed_call("typed njit 1st", reduce_eager, reduce_input)
+
+    # 定常状態はウォームアップしてから複数回測る（1 回だけだと初回の確保やスレッド起動が乗る）
+    steady = {
+        row["case"]: row["min_ms"] / 1e3
+        for row in [
+            benchmark("python loop", lambda: reduce_python(reduce_input), repeats=3, warmup_s=0.1),
+            benchmark("numpy vectorised", lambda: reduce_numpy(reduce_input), repeats=3, warmup_s=0.1),
+            benchmark("lazy njit", lambda: reduce_lazy(reduce_input), repeats=3, warmup_s=0.1),
+            benchmark("typed njit", lambda: reduce_eager(reduce_input), repeats=3, warmup_s=0.1),
+            benchmark("njit parallel", lambda: reduce_parallel(reduce_input), repeats=3, warmup_s=0.1),
+        ]
+    }
+    answer_np = reduce_numpy(reduce_input)
+    answer_reduce_par = reduce_parallel(reduce_input)
     pd.DataFrame([
-        {"case": "python", "elapsed_s": base_elapsed},
-        {"case": "lazy_njit_first", "elapsed_s": lazy_first},
-        {"case": "lazy_njit_second", "elapsed_s": lazy_second},
-        {"case": "typed_njit_first", "elapsed_s": eager_first},
-        {"case": "typed_njit_second", "elapsed_s": eager_second},
+        {"case": case, "answer": answer, "elapsed_s": elapsed, "speedup_vs_python": steady["python loop"] / elapsed}
+        for case, answer, elapsed in [
+            ("python", answer_py, steady["python loop"]),
+            ("numpy", answer_np, steady["numpy vectorised"]),
+            ("lazy_njit_first", answer_lazy, lazy_first),
+            ("lazy_njit_steady", answer_lazy, steady["lazy njit"]),
+            ("typed_njit_first", answer_eager, eager_first),
+            ("typed_njit_steady", answer_eager, steady["typed njit"]),
+            ("njit_parallel", answer_reduce_par, steady["njit parallel"]),
+        ]
     ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    読み方の要点は 3 つ。
+
+    1. **`lazy_njit_first` だけが突出して遅い。** これがコンパイル時間で、
+       2 回目以降は消える。事前コンパイルではデコレータの評価時にコンパイルが
+       済んでいるため、1 回目から 2 回目と同じ速さになる。
+    2. **NumPy より njit のほうが速い。** NumPy は `np.sin(values)`、`np.sqrt(values)` と
+       段階ごとに中間配列を作り、そのたびにメモリを往復する。
+       njit のループは 1 要素を読んだらそのまま計算して足し込むので、中間配列が要らない。
+       **ベクトル化は速いが最速ではない**、という点は覚えておく価値がある。
+    3. **`answer` 列が全手法で一致している。** 最適化で意味が変わっていない証拠になる。
+       `fastmath=True` は浮動小数点の結合則の並べ替えを許すため、
+       並列版の値は下位桁で他とわずかに異なりうる。
+    """)
     return
 
 
@@ -374,9 +437,8 @@ def _(njit, pd, prange, timed_call):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    `answer` 列が 3 手法で一致していることが、最適化で意味が変わっていない証拠になる。
-    `parallel=True` は `prange` のループをスレッドへ分割し、`fastmath=True` は
-    浮動小数点の結合則の並べ替えを許す（この整数演算では効かない）。
+    こちらでも `answer` 列は 3 手法で一致する。
+    整数演算なので `fastmath=True` は効かず、効いているのは `prange` による並列化だけである。
     """)
     return
 
@@ -675,6 +737,105 @@ def _(cf, pd, requests, thread_urls, timed_call):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### asyncio：スレッドを使わない I/O 並列
+
+    I/O 並列にはもう 1 つ主要な選択肢がある。asyncio である。
+    スレッドを増やす代わりに、**1 本のスレッドの上でイベントループが
+    待ち状態のタスクを切り替える**。OS スレッドを作らないので、
+    同時接続数が数千規模になっても破綻しにくい。
+
+    比較を公平にするため、両方とも `httpx` を使う。
+    `httpx` は同期 API と非同期 API がほぼ同じ形なので、
+    差が並列化の仕組みだけになる。
+
+    - 同期 + `ThreadPoolExecutor`: `httpx.Client` を 8 スレッドで使う
+    - 非同期 + `asyncio.gather`: `httpx.AsyncClient` で 6 件を同時に投げる
+
+    marimo のセルでは `await` をそのまま書ける（セルが `async def` になる）。
+    逆に `asyncio.run()` は使えない。marimo 自身がイベントループの中で
+    セルを実行しているため、`asyncio.run() cannot be called from a running event loop`
+    になる。同じ理由で Jupyter でも `asyncio.run()` は使えない。
+    """)
+    return
+
+
+@app.cell
+async def _(asyncio, cf, httpx, pd, thread_urls, time):
+    def httpx_sync_fetch(client, url):
+        response = client.get(url)
+        response.raise_for_status()
+        return len(response.content)
+
+    async def httpx_async_fetch(client, url):
+        response = await client.get(url)
+        response.raise_for_status()
+        return len(response.content)
+
+    def fetch_with_threads():
+        with httpx.Client(timeout=5.0) as client:
+            with cf.ThreadPoolExecutor(max_workers=8) as executor:
+                return list(executor.map(lambda url: httpx_sync_fetch(client, url), thread_urls))
+
+    async def fetch_with_asyncio():
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            return await asyncio.gather(
+                *[httpx_async_fetch(client, url) for url in thread_urls]
+            )
+
+    def measure_sync(func, repeats=3):
+        func()  # ウォームアップ
+        samples = []
+        for _ in range(repeats):
+            start = time.perf_counter()
+            func()
+            samples.append(time.perf_counter() - start)
+        return min(samples)
+
+    async def measure_async(func, repeats=3):
+        await func()  # ウォームアップ
+        samples = []
+        for _ in range(repeats):
+            start = time.perf_counter()
+            await func()
+            samples.append(time.perf_counter() - start)
+        return min(samples)
+
+    sync_elapsed = measure_sync(fetch_with_threads)
+    async_elapsed = await measure_async(fetch_with_asyncio)
+    _sync_sizes = fetch_with_threads()
+    _async_sizes = await fetch_with_asyncio()
+
+    io_rows = [
+        {"strategy": "httpx sync + ThreadPoolExecutor(8)", "elapsed_s": sync_elapsed},
+        {"strategy": "httpx async + asyncio.gather", "elapsed_s": async_elapsed},
+    ]
+    print(f"bytes match: {list(_sync_sizes) == list(_async_sizes)}")
+    _frame = pd.DataFrame(io_rows)
+    _frame["speedup_vs_threads"] = sync_elapsed / _frame["elapsed_s"]
+    _frame
+    return (io_rows,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    どちらも 6 件を同時に投げるので、逐次なら 300 ms かかるところが大きく下がる。
+    ただし 1 件ぶんの待ち（50 ms）ちょうどにはならない。
+    クライアントの生成、接続の確立、スレッドプールやイベントループの立ち上げが
+    上乗せされるためである。
+    **この規模では両者に大きな差は出ない。** asyncio が効いてくるのは、
+    同時接続が数百〜数千に増えてスレッドの生成とコンテキストスイッチが
+    無視できなくなってからである。
+
+    選択の基準は速度ではなく、コードの形になる。
+    asyncio は呼び出し側まで `async` に染まるため、
+    既存の同期コードへ後から入れるのは難しい。
+    スレッドプールは既存の関数をそのまま渡せる。
+
+    どちらもウォームアップしてから 3 回測り、最小値を採っている。
+    1 回だけ測るとクライアントの生成やスレッドプールの起動が乗り、
+    先に測ったほうが不利になる。
+
     `tqdm.contrib.concurrent.thread_map` は `ThreadPoolExecutor` と進捗バーを
     ひとまとめにした薄いラッパで、`map` と同じ感覚で書ける。
     静的 HTML には進捗バーが残ってしまうため `disable=True` にしている。
@@ -684,7 +845,8 @@ def _(mo):
 
 
 @app.cell
-def _(cleanup_server, fetch_status, pd, thread_map, thread_urls):
+def _(cleanup_server, fetch_status, io_rows, pd, thread_map, thread_urls):
+    _ = io_rows  # asyncio の計測が終わってからサーバを止める
     thread_map_rows = thread_map(fetch_status, thread_urls, max_workers=8, disable=True)
     cleanup_server()
     pd.DataFrame(thread_map_rows)
@@ -761,7 +923,7 @@ def _(fork_context, pd):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## GPU カーネルを書く 5 つの方法
+    ## GPU で計算する 6 つの方法
 
     ### 比較の題材と計測の約束
 
@@ -772,13 +934,14 @@ def _(mo):
     正しく書けている限り速度はほぼ同じになるはずで、
     それが確認できるかどうかが比較の目的である。
 
-    比較するのは次の 5 方式。
+    比較するのは次の 6 方式。
 
     | 方式 | カーネルの記述言語 | 位置づけ |
     | --- | --- | --- |
     | numba-cuda | Python | Python のサブセットをそのまま CUDA カーネルへ |
     | CuPy 要素演算 | 書かない | NumPy 互換 API。裏で融合カーネルを生成 |
     | CuPy RawKernel | CUDA C++ | C++ の文字列を実行時コンパイル |
+    | PyTorch | 書かない | 実際に最も広く使われる経路 |
     | Triton | Python (DSL) | ブロック単位で書く。タイル分割は自動 |
     | cuda-python | CUDA C++ | NVIDIA 公式バインディング。最も低水準 |
 
@@ -1106,6 +1269,48 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### PyTorch のテンソル演算
+
+    Python から GPU を使う経路として実際に最も広く使われているのは PyTorch である。
+    `torch.add(a, b, out=c)` と書くだけで、CuPy と同じように要素ごとの加算カーネルが走る。
+    カーネルを書かずに済み、既存の深層学習のコードとそのまま噛み合う。
+
+    ここでは `out=` を指定して出力先を使い回している。指定しないと呼び出しのたびに
+    テンソルを確保するので、確保の時間まで測ってしまう。
+    """)
+    return
+
+
+@app.cell
+def _(benchmark, gpu_ready, gpu_warm, left_host, np, right_host, torch):
+    torch_rows = []
+    if not (gpu_ready and gpu_warm):
+        torch_rows.append({"case": "torch", "median_ms": np.nan, "min_ms": np.nan})
+        torch_checksum = None
+    else:
+        torch_left = torch.from_numpy(left_host).cuda()
+        torch_right = torch.from_numpy(right_host).cuda()
+        torch_out = torch.empty_like(torch_left)
+
+        def torch_kernel_only():
+            torch.add(torch_left, torch_right, out=torch_out)
+            torch.cuda.synchronize()
+
+        def torch_with_transfer():
+            a = torch.from_numpy(left_host).cuda()
+            b = torch.from_numpy(right_host).cuda()
+            return (a + b).cpu().numpy()
+
+        torch_rows.append(benchmark("torch kernel", torch_kernel_only))
+        torch_rows.append(benchmark("torch +transfer", torch_with_transfer))
+        torch_checksum = torch_out[:3].cpu().numpy()
+    print(f"{torch_checksum=}")
+    return (torch_rows,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ### Triton
 
     Triton は GPU カーネル用の Python DSL である。numba-cuda や CUDA C++ が
@@ -1282,7 +1487,7 @@ def _(mo):
     mo.md(r"""
     ### 結果
 
-    5 方式の結果を実効メモリ帯域とともに並べる。`bandwidth_GB_per_s` は
+    6 方式の結果を実効メモリ帯域とともに並べる。`bandwidth_GB_per_s` は
     「読み 2 本 + 書き 1 本」の 3 配列分のバイト数を所要時間で割った値である。
 
     読み方の要点は 3 つ。
@@ -1294,9 +1499,10 @@ def _(mo):
        デバイスメモリ帯域より 1 桁小さい。加算 1 回のためにデータを往復させると
        転送だけで時間が埋まる。GPU が効くのは、データを GPU 上に置いたまま
        複数の演算を重ねられる場合である。
-    3. **`+transfer` の 3 行は横並びで比べてはいけない。** 条件をそろえていない。
-       numba-cuda と CuPy の行は、毎回デバイスメモリを確保し直し、
+    3. **`+transfer` の行は横並びで比べてはいけない。** 条件をそろえていない。
+       numba-cuda・CuPy・PyTorch の行は、毎回デバイスメモリを確保し直し、
        ページング可能な（pageable）ホストメモリから転送している。
+       PyTorch はさらに結果のテンソルも毎回確保するので、この 3 つの中でも条件が違う。
        cuda-python の行はデバイス側もホスト側も確保済みで、しかもホスト側は
        ページロック済み（pinned）である。pinned メモリは DMA で直接転送できるため
        中間バッファへのコピーが要らず、確保の手間と引き換えに転送が大きく速くなる。
@@ -1306,13 +1512,269 @@ def _(mo):
 
 
 @app.cell
-def _(MOVED_GIGABYTES, cpu_row, cuda_python_rows, cupy_rows, numba_rows, pd, triton_rows):
-    all_rows = [cpu_row, *numba_rows, *cupy_rows, *triton_rows, *cuda_python_rows]
+def _(
+    MOVED_GIGABYTES,
+    cpu_row,
+    cuda_python_rows,
+    cupy_rows,
+    numba_rows,
+    pd,
+    torch_rows,
+    triton_rows,
+):
+    all_rows = [
+        cpu_row,
+        *numba_rows,
+        *cupy_rows,
+        *torch_rows,
+        *triton_rows,
+        *cuda_python_rows,
+    ]
     summary = pd.DataFrame(all_rows)
     summary["bandwidth_GB_per_s"] = MOVED_GIGABYTES / (summary["min_ms"] / 1e3)
     summary["speedup_vs_cpu"] = cpu_row["min_ms"] / summary["min_ms"]
     summary.round(3)
     return (summary,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### カーネル融合：演算を 1 つにまとめる
+
+    上の比較で方式による差が出なかったのは、題材が加算 1 回だったからである。
+    実際のコードは `a * b + a - b * b` のように複数の演算を繋げる。
+    ここで方式による大きな差が出る。
+
+    NumPy 互換の API（CuPy の要素演算、PyTorch のテンソル演算）は、
+    式を**演算ごとに別々のカーネル**へ分解する。上の式なら
+
+    1. `t1 = a * b`（$a$, $b$ を読み $t_1$ を書く）
+    2. `t2 = t1 + a`
+    3. `t3 = b * b`
+    4. `t4 = t2 - t3`
+
+    の 4 回カーネルを起動し、そのたびに中間配列をメモリへ書き出して読み直す。
+    素朴に数えれば配列 11〜12 本ぶんの読み書きになる。
+
+    **融合**すると、1 要素につき $a$ と $b$ を 1 回読んで計算し、結果を 1 回書くだけで済む。
+    読み書きは配列 3 本ぶんに減る。帯域律速の演算なので、この比がそのまま速度比になる。
+
+    融合させる方法を 2 つ比べる。
+
+    - `cupy.fuse()`: デコレータを付けるだけで、CuPy が式を 1 つのカーネルへまとめる。
+    - `torch.compile()`: PyTorch が計算グラフを追跡し、**Triton のカーネルを自動生成**する。
+      手書きの Triton と同じ土俵に自動で載る。初回はコンパイルが走るため、
+      ウォームアップの時間を別に測って表示する。
+    """)
+    return
+
+
+@app.cell
+def _(VECTOR_SIZE, benchmark, cp, gpu_ready, gpu_warm, left_host, np, right_host, time, torch):
+    fusion_rows = []
+    if not (gpu_ready and gpu_warm):
+        fusion_rows.append({"case": "fusion", "median_ms": np.nan, "min_ms": np.nan})
+        fusion_checksums = None
+        torch_compile_warmup_s = np.nan
+    else:
+        fuse_left = cp.asarray(left_host)
+        fuse_right = cp.asarray(right_host)
+
+        def cupy_eager_expression():
+            result = fuse_left * fuse_right + fuse_left - fuse_right * fuse_right
+            cp.cuda.Stream.null.synchronize()
+            return result
+
+        @cp.fuse()
+        def cupy_fused_expression(a, b):
+            return a * b + a - b * b
+
+        def cupy_fused():
+            result = cupy_fused_expression(fuse_left, fuse_right)
+            cp.cuda.Stream.null.synchronize()
+            return result
+
+        torch_fuse_left = torch.from_numpy(left_host).cuda()
+        torch_fuse_right = torch.from_numpy(right_host).cuda()
+
+        def torch_eager_expression():
+            result = (
+                torch_fuse_left * torch_fuse_right
+                + torch_fuse_left
+                - torch_fuse_right * torch_fuse_right
+            )
+            torch.cuda.synchronize()
+            return result
+
+        compiled_expression = torch.compile(lambda a, b: a * b + a - b * b)
+        _warmup_start = time.perf_counter()
+        compiled_expression(torch_fuse_left, torch_fuse_right)
+        torch.cuda.synchronize()
+        torch_compile_warmup_s = time.perf_counter() - _warmup_start
+
+        def torch_compiled():
+            result = compiled_expression(torch_fuse_left, torch_fuse_right)
+            torch.cuda.synchronize()
+            return result
+
+        fusion_rows.append(benchmark("cupy eager (4 kernels)", cupy_eager_expression))
+        fusion_rows.append(benchmark("cupy.fuse", cupy_fused))
+        fusion_rows.append(benchmark("torch eager (4 kernels)", torch_eager_expression))
+        fusion_rows.append(benchmark("torch.compile (triton)", torch_compiled))
+        fusion_checksums = [
+            float(cupy_eager_expression()[0]),
+            float(cupy_fused()[0]),
+            float(torch_eager_expression()[0].item()),
+            float(torch_compiled()[0].item()),
+        ]
+    print(f"{fusion_checksums=}")
+    print(f"torch.compile warmup: {torch_compile_warmup_s:.1f} s")
+    print(f"array size: {VECTOR_SIZE} elements")
+    return (fusion_rows,)
+
+
+@app.cell
+def _(cupy_rows, fusion_rows, pd):
+    # vector add の CuPy 要素演算は「読み 2 + 書き 1」の 3 パス。これを基準に、
+    # 融合前後の所要時間が何パス相当かを実測から逆算する
+    reference_ms = next(row["min_ms"] for row in cupy_rows if row["case"] == "cupy elementwise")
+    fusion_summary = pd.DataFrame(fusion_rows)
+    fusion_summary["array_passes"] = 3 * fusion_summary["min_ms"] / reference_ms
+    fusion_summary["speedup_vs_eager"] = (
+        fusion_summary["min_ms"].iloc[0] / fusion_summary["min_ms"]
+    )
+    fusion_summary.round(2)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    `array_passes` は、vector add の CuPy 要素演算（読み 2 本 + 書き 1 本 = 3 パス）を
+    基準にして、所要時間から逆算した「配列を何本ぶん読み書きしたか」の推定値である。
+    帯域律速なので、時間の比がそのままメモリ往復量の比になる。
+
+    融合版が 3 に近い値になれば、**中間配列がすべて消えた**ことの裏付けになる。
+    eager 版は式を 4 つのカーネルへ分けるので、素朴に数えれば 11〜12 パスになる。
+    実測がそれより少し小さく出るのは、直前のカーネルが書いた中間配列の一部が
+    キャッシュに残っていて、メモリまで往復しなくて済むためである。
+
+    実務上の指針は単純である。**要素ごとの演算を並べるときは融合する。**
+    CuPy なら `cupy.fuse`、PyTorch なら `torch.compile` を付けるだけでよく、
+    カーネルを手で書く必要はない。
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 演算律速の題材：行列積
+
+    ここまでの題材はすべて帯域律速だった。今度は逆に、**演算が支配的な**題材を見る。
+
+    $N \times N$ の行列積は
+    浮動小数点演算が $2N^3$ 回、転送するデータが $3N^2$ 要素である。
+    比を取ると 1 要素あたりの演算数は $N$ に比例して増える。
+    つまり **$N$ を大きくするほど、転送のコストが計算に埋もれる**。
+    これが「GPU が効く仕事」の典型である。
+
+    比較するのは NumPy（裏で CPU の BLAS が動き、複数コアを使う）と
+    `torch.matmul`（裏で cuBLAS が動く）。どちらも**自分でカーネルを書かない**点が重要で、
+    行列積のような定番の演算は、手書きより十分に最適化されたライブラリを呼ぶほうが速い。
+
+    GPU 側は kernel のみと転送込みの両方を測る。
+    vector add では転送込みが CPU に負けたが、行列積ではどうなるかを見る。
+    """)
+    return
+
+
+@app.cell
+def _(benchmark, gpu_ready, gpu_warm, np, pd, torch):
+    MATMUL_SIZES = [1024, 2048, 4096]
+    matmul_rows = []
+    matmul_rng = np.random.default_rng(0)
+    for _size in MATMUL_SIZES:
+        _flops = 2 * _size**3
+        _left = matmul_rng.random((_size, _size), dtype=np.float32)
+        _right = matmul_rng.random((_size, _size), dtype=np.float32)
+
+        def _cpu_matmul(a=_left, b=_right):
+            return a @ b
+
+        _cpu = benchmark(f"numpy matmul N={_size}", _cpu_matmul, repeats=3, warmup_s=0.3)
+        _row = {
+            "N": _size,
+            "cpu_ms": _cpu["min_ms"],
+            "cpu_TFLOPS": _flops / (_cpu["min_ms"] / 1e3) / 1e12,
+        }
+
+        if gpu_ready and gpu_warm:
+            _device_left = torch.from_numpy(_left).cuda()
+            _device_right = torch.from_numpy(_right).cuda()
+
+            def _gpu_kernel(a=_device_left, b=_device_right):
+                torch.matmul(a, b)
+                torch.cuda.synchronize()
+
+            def _gpu_with_transfer(a=_left, b=_right):
+                return (torch.from_numpy(a).cuda() @ torch.from_numpy(b).cuda()).cpu().numpy()
+
+            _kernel = benchmark(f"cublas matmul N={_size}", _gpu_kernel, repeats=3, warmup_s=0.3)
+            _transfer = benchmark(
+                f"cublas matmul +transfer N={_size}", _gpu_with_transfer, repeats=3, warmup_s=0.3
+            )
+            _row.update({
+                "gpu_kernel_ms": _kernel["min_ms"],
+                "gpu_kernel_TFLOPS": _flops / (_kernel["min_ms"] / 1e3) / 1e12,
+                "gpu_transfer_ms": _transfer["min_ms"],
+                "speedup_kernel": _cpu["min_ms"] / _kernel["min_ms"],
+                "speedup_with_transfer": _cpu["min_ms"] / _transfer["min_ms"],
+            })
+            del _device_left, _device_right
+            torch.cuda.empty_cache()
+        matmul_rows.append(_row)
+    pd.DataFrame(matmul_rows).round(2)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    vector add との違いがはっきり出る。
+
+    | 題材 | 1 要素あたりの演算 | kernel のみ | 転送込み |
+    | --- | --- | --- | --- |
+    | vector add | 定数（1/12 FLOP/byte） | GPU が大きく勝つ | **GPU が負ける** |
+    | 行列積 | $N$ に比例して増える | GPU が大きく勝つ | **GPU が勝つ** |
+
+    同じ GPU、同じ転送経路でも、**題材の演算強度が結論を反転させる**。
+    「GPU は速い／遅い」と一般化できず、
+    転送量あたりどれだけ計算するかで判断するしかない。
+
+    ただし `speedup_with_transfer` の列は $N$ を大きくしても増えない。
+    理論上は計算が $N^3$、転送が $N^2$ なので $N$ とともに有利になるはずだが、
+    ここでは 2 つの要因がそれを打ち消している。
+
+    - `cpu_TFLOPS` 列のとおり、CPU 側も $N$ が大きいほど効率が上がる（比較相手が強くなる）。
+    - `gpu_transfer_ms` の伸びが $N^2$ より速い。$N$ を 1024 から 2048 へ倍にした区間は
+      転送量に比例して増えるが、4096 ではそれ以上に跳ねる。
+      この転送はページング可能なホストメモリを使い、毎回デバイスメモリを確保し直すため、
+      大きなサイズでステージングと再確保のコストが効いてくる。
+
+    転送を本気で速くするならページロックメモリと確保の使い回しが要る。
+    それでも**行列積では転送を含めても GPU が勝つ**という結論は変わらない。
+
+    もう 1 つ読み取れるのは、`cpu_TFLOPS` と `gpu_kernel_TFLOPS` の差である。
+    どちらも人が書いたループではなく、BLAS と cuBLAS という
+    高度に最適化されたライブラリの数字である。
+    行列積・FFT・畳み込みのような定番の演算では、
+    **自分でカーネルを書かないことが最も効く最適化**になる。
+    このノートで見てきたカーネルの書き方は、
+    ライブラリに無い演算を書くときの手段だと位置づけるのが正しい。
+    """)
+    return
 
 
 @app.cell(hide_code=True)
@@ -1405,49 +1867,107 @@ def _(mo):
     mo.md(r"""
     ## データの読み書き
 
-    最後に入出力ライブラリを比べる。題材は次の 2 つで、いずれもこのセルで生成する。
+    最後に入出力を比べる。題材は次の 2 つで、いずれもこのセルで生成する。
 
-    - CSV: 20,000 行 4 列（`carat` / `depth` / `table` / `price`）を
-      `data/others/rapid_python/diamonds.csv` へ書き出す。
-    - JSON: 5,000 要素の配列（各要素は `id` / `value` / `square`）を
-      `data/others/rapid_python/large-file.json` へ書き出す。
+    - 表データ: 200,000 行 4 列（`carat` / `depth` / `table` / `price`）を
+      CSV と Parquet の両方で `data/others/rapid_python/` へ書き出す。
+    - JSON: 5,000 要素の配列（各要素は `id` / `value` / `square`）。
 
-    比較するのは次の 3 組。
+    表データの読み込みで比べるのは次の 6 通り。
 
-    - `pandas.read_csv` と `dask.dataframe.read_csv().compute()`
-    - `json.loads` と `orjson.loads`
-    - `json.dumps` と `orjson.dumps`
+    | 手法 | 中身 |
+    | --- | --- |
+    | `pandas.read_csv` | 既定の C エンジン |
+    | `pandas.read_csv(engine="pyarrow")` | Arrow のパーサ。複数コアを使う |
+    | `pandas.read_parquet` | 列指向・型付き・圧縮済みの形式 |
+    | `polars.read_csv` | Rust 実装。並列パース |
+    | `polars.read_parquet` | 同上 |
+    | `dask.dataframe.read_csv().compute()` | タスクグラフを組んで分割実行 |
 
-    この規模では **dask が pandas より遅くなる**点に注意する。
-    dask はタスクグラフを組んで分割実行するため固定コストが乗る。
-    有利になるのはメモリに載らない大きさや、分割して並列に処理できる場合である。
-    一方 `orjson` は C 実装で、この規模でも `json` に対して確実に速い。
+    注目してほしいのは 2 点。
+
+    1. **CSV をやめると速くなる。** CSV はテキストなので、読むたびに数値へ変換し直し、
+       型を推定し直す必要がある。Parquet は型と列の境界を持っているのでその作業が要らない。
+       ファイルサイズも小さくなるので、後で `size_MiB` 列と併せて見る。
+    2. **同じ CSV でもパーサで変わる。** pandas の既定は単一コアの C 実装だが、
+       `engine="pyarrow"` と polars は複数コアでパースする。
+
+    dask はこの規模では pandas より遅い。タスクグラフの構築という固定コストが乗るためで、
+    有利になるのはメモリに載らない大きさや、分割して並列処理できる場合である。
+
+    JSON 側では `json` と `orjson` を読み書きの両方で比べる。
+    `orjson` は C 実装で、この規模でも確実に速い。
     """)
     return
 
 
 @app.cell
-def _(data_dir, dd, json, np, orjson, pd, timed_call):
+def _(benchmark, data_dir, dd, np, pd, pl):
     rng_data = np.random.default_rng(0)
+    TABLE_ROWS = 200_000
     csv_path = data_dir / "diamonds.csv"
-    json_path = data_dir / "large-file.json"
-    csv_frame = pd.DataFrame({
-        "carat": rng_data.uniform(0.2, 2.5, size=20000).round(3),
-        "depth": rng_data.uniform(55.0, 70.0, size=20000).round(3),
-        "table": rng_data.uniform(50.0, 70.0, size=20000).round(3),
-        "price": rng_data.integers(300, 18000, size=20000),
+    parquet_path = data_dir / "diamonds.parquet"
+    table_frame = pd.DataFrame({
+        "carat": rng_data.uniform(0.2, 2.5, size=TABLE_ROWS).round(3),
+        "depth": rng_data.uniform(55.0, 70.0, size=TABLE_ROWS).round(3),
+        "table": rng_data.uniform(50.0, 70.0, size=TABLE_ROWS).round(3),
+        "price": rng_data.integers(300, 18000, size=TABLE_ROWS),
     })
-    csv_frame.to_csv(csv_path, index=False)
+    table_frame.to_csv(csv_path, index=False)
+    table_frame.to_parquet(parquet_path)
+
+    table_cases = [
+        ("pandas.read_csv (c)", "csv", lambda: pd.read_csv(csv_path)),
+        (
+            "pandas.read_csv (pyarrow)",
+            "csv",
+            lambda: pd.read_csv(csv_path, engine="pyarrow"),
+        ),
+        ("pandas.read_parquet", "parquet", lambda: pd.read_parquet(parquet_path)),
+        ("polars.read_csv", "csv", lambda: pl.read_csv(csv_path)),
+        ("polars.read_parquet", "parquet", lambda: pl.read_parquet(parquet_path)),
+        ("dask.read_csv", "csv", lambda: dd.read_csv(csv_path).compute()),
+    ]
+    table_rows = []
+    for _label, _fmt, _reader in table_cases:
+        _result = benchmark(_label, _reader, repeats=3, warmup_s=0.1)
+        _path = csv_path if _fmt == "csv" else parquet_path
+        table_rows.append({
+            "task": _label,
+            "format": _fmt,
+            "elapsed_ms": _result["min_ms"],
+            "size_MiB": _path.stat().st_size / 2**20,
+        })
+    _frame = pd.DataFrame(table_rows)
+    _frame["speedup_vs_pandas_csv"] = _frame["elapsed_ms"].iloc[0] / _frame["elapsed_ms"]
+    _frame.round(3)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    続いて JSON の読み書きを `json` と `orjson` で比べる。
+    """)
+    return
+
+
+@app.cell
+def _(data_dir, json, np, orjson, pd, timed_call):
+    rng_json = np.random.default_rng(1)
+    json_path = data_dir / "large-file.json"
     json_payload = [
         {"id": int(index), "value": float(value), "square": float(value**2)}
-        for index, value in enumerate(rng_data.normal(size=5000))
+        for index, value in enumerate(rng_json.normal(size=5000))
     ]
     json_path.write_text(json.dumps(json_payload, ensure_ascii=False), encoding="utf-8")
 
-    _, pandas_elapsed = timed_call("pandas.read_csv", pd.read_csv, csv_path)
-    _, dask_elapsed = timed_call("dask.read_csv", lambda: dd.read_csv(csv_path).compute())
-    _, json_elapsed = timed_call("json.loads", lambda: json.loads(json_path.read_text(encoding="utf-8")))
-    data_orjson, orjson_elapsed = timed_call("orjson.loads", lambda: orjson.loads(json_path.read_bytes()))
+    _, json_elapsed = timed_call(
+        "json.loads", lambda: json.loads(json_path.read_text(encoding="utf-8"))
+    )
+    data_orjson, orjson_elapsed = timed_call(
+        "orjson.loads", lambda: orjson.loads(json_path.read_bytes())
+    )
     _, dump_elapsed = timed_call(
         "json.dumps",
         lambda: (data_dir / "large-file.standard.json").write_text(
@@ -1459,12 +1979,10 @@ def _(data_dir, dd, json, np, orjson, pd, timed_call):
         lambda: (data_dir / "large-file.orjson.json").write_bytes(orjson.dumps(data_orjson)),
     )
     pd.DataFrame([
-        {"task": "pandas.read_csv", "elapsed_s": pandas_elapsed, "group": "csv read"},
-        {"task": "dask.read_csv", "elapsed_s": dask_elapsed, "group": "csv read"},
-        {"task": "json.loads", "elapsed_s": json_elapsed, "group": "json read"},
-        {"task": "orjson.loads", "elapsed_s": orjson_elapsed, "group": "json read"},
-        {"task": "json.dumps", "elapsed_s": dump_elapsed, "group": "json write"},
-        {"task": "orjson.dumps", "elapsed_s": orjson_dump_elapsed, "group": "json write"},
+        {"task": "json.loads", "elapsed_s": json_elapsed, "group": "read"},
+        {"task": "orjson.loads", "elapsed_s": orjson_elapsed, "group": "read"},
+        {"task": "json.dumps", "elapsed_s": dump_elapsed, "group": "write"},
+        {"task": "orjson.dumps", "elapsed_s": orjson_dump_elapsed, "group": "write"},
     ])
     return
 
