@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Validate the generated index and published notebook HTML files."""
+"""Validate the generated index, published notebook HTML files, and the manifest."""
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+
+from build_site import discover
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
@@ -33,6 +37,45 @@ def local_target(document: Path, link: str) -> Path | None:
     if parsed.scheme or parsed.netloc or link.startswith(("#", "data:", "blob:")):
         return None
     return (document.parent / unquote(parsed.path)).resolve()
+
+
+def check_manifest() -> list[str]:
+    """Verify that the committed HTML is up to date with the committed notebooks.
+
+    CI は notebook を実行せず、コミット済みの HTML をそのまま配信する。
+    manifest に記録した SHA-256 と実ファイルが食い違っていれば、
+    notebook を変更したのに再生成していないことになる。
+    """
+    failures: list[str] = []
+    notebooks = discover()
+    expected_sources = {notebook.relative.as_posix() for notebook in notebooks}
+    expected_pages = {notebook.relative.with_suffix(".html") for notebook in notebooks}
+    published = {
+        path.relative_to(SITE) for path in SITE.rglob("*.html") if path != SITE / "index.html"
+    }
+    if expected_pages != published:
+        failures.append(f"missing HTML: {sorted(expected_pages - published)}")
+        failures.append(f"unexpected HTML: {sorted(published - expected_pages)}")
+
+    manifest_path = SITE / "notebooks-manifest.json"
+    if not manifest_path.exists():
+        failures.append("missing site/notebooks-manifest.json")
+        return failures
+    entries = json.loads(manifest_path.read_text(encoding="utf-8")).get("notebooks", {})
+    if set(entries) != expected_sources:
+        failures.append(
+            f"manifest source mismatch: expected {len(expected_sources)}, found {len(entries)}"
+        )
+    for source_name, entry in entries.items():
+        source_path = ROOT / "notebooks" / source_name
+        html_path = SITE / entry["html"]
+        if not source_path.exists() or not html_path.exists():
+            continue
+        if hashlib.sha256(source_path.read_bytes()).hexdigest() != entry.get("source_sha256"):
+            failures.append(f"stale HTML source mapping: {source_name}")
+        if hashlib.sha256(html_path.read_bytes()).hexdigest() != entry.get("html_sha256"):
+            failures.append(f"modified generated HTML: {entry['html']}")
+    return failures
 
 
 def main() -> int:
@@ -65,6 +108,7 @@ def main() -> int:
     if indexed_pages != expected_pages:
         failures.append(f"index missing pages: {sorted(expected_pages - indexed_pages)}")
         failures.append(f"index has extra pages: {sorted(indexed_pages - expected_pages)}")
+    failures.extend(check_manifest())
     if failures:
         print("\n".join(failures), file=sys.stderr)
         return 1

@@ -189,6 +189,12 @@ def write_manifest(
             "html_sha256": hashlib.sha256(notebook.output.read_bytes()).hexdigest(),
         }
     expected_sources = {notebook.relative.as_posix() for notebook in notebooks}
+    if updated_notebooks is not None:
+        # リネームや削除で消えた source を落とす。これをしないと部分ビルドでは
+        # 旧名のエントリが残り、下の照合に失敗して全再ビルドを強いられる。
+        entries = {
+            name: entry for name, entry in entries.items() if name in expected_sources
+        }
     if set(entries) != expected_sources:
         raise ValueError(
             "Manifest source set differs from discovered notebooks; run a full build."
