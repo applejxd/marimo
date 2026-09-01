@@ -142,8 +142,8 @@
     },
     "others/rapid_python.py": {
       "html": "others/rapid_python.html",
-      "html_sha256": "19ff13bb29f0d80873c50599ae4e668a7d2c2685481be12fd185d1d57a0e2e5a",
-      "source_sha256": "cf6c1ac721291ca9c2f3d98bcb02c7c747293fa7d7839ff6d2f84c34ef62a973"
+      "html_sha256": "ae1c15a2ce8e4d4169098ab59374abb53f470169ef1ad098a700bfd93a47e418",
+      "source_sha256": "df716f8882d51f76ecfb9981a32e5051d1d889872e234720dfe75f950e930605"
     },
     "quantum/grover.py": {
       "html": "quantum/grover.html",
