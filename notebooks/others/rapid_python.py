@@ -938,11 +938,12 @@ def _(mo):
     mo.md(r"""
     ## GPU による高速化
 
-    この章は 3 段構えである。
+    この章は 4 段構えである。
 
     1. **カーネルを書く 6 つの方法** — 同じ計算を 6 通りで書いて比べる
     2. **カーネル融合** — 複数の演算を 1 つのカーネルにまとめる
     3. **演算律速の仕事** — 行列積で、GPU が本当に効く条件を見る
+    4. **使い分けの指針** — 以上の実測から、どれをいつ使うかをまとめる
 
     ### カーネルを書く 6 つの方法
 
@@ -1792,6 +1793,175 @@ def _(mo):
     **自分でカーネルを書かないことが最も効く最適化**になる。
     このノートで見てきたカーネルの書き方は、
     ライブラリに無い演算を書くときの手段だと位置づけるのが正しい。
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 使い分けの指針
+
+    ここまでの実測をもとに、GPU を使うときの判断を上から順に並べる。
+    **上にあるものほど効果が大きい。** 下へ行くほど差は小さくなる。
+
+    **1. そもそも GPU へ持っていくか。** 決め手は演算強度である。
+    vector add（1 FLOP あたり 12 バイトの読み書き）は、毎回デバイスメモリを確保して
+    ページング可能なホストメモリから往復させると CPU に負けた。
+    行列積（計算が $N^3$、転送が $N^2$）は、同じ往復をしても勝った。
+    データを GPU 上に置いたまま複数の演算を重ねられるなら GPU が効く。
+    1 回の演算のために往復させるなら、たいてい割に合わない。
+
+    **2. ライブラリがあるなら自分で書かない。** 行列積・FFT・畳み込みのような
+    定番の演算は cuBLAS や cuFFT が担当する。実測でも cuBLAS は 12 TFLOP/s 台に達した。
+    手書きのカーネルでこれを超えるのは現実的ではない。
+
+    **3. 要素ごとの演算は融合する。** `cupy.fuse` や `torch.compile` を
+    付けるだけで 3 倍前後になった。カーネルを手で書く前に、まずこれを試す。
+
+    **4. それでも書く必要があるなら、速度ではなく状況で選ぶ。**
+    kernel の実測は 6 方式とも 0.55〜0.63 ms で横並びだった。帯域律速だからである。
+    速度で差が付かないなら、既存コードとの相性と依存の重さで決めてよい。
+
+    | 状況 | 方式 | 理由 |
+    | --- | --- | --- |
+    | すでに PyTorch を使っている | PyTorch、足りなければ `torch.compile`、さらに Triton | テンソルをそのまま渡せる。Triton も torch のテンソルを受け取る |
+    | NumPy のコードを GPU へ移す | CuPy | API がほぼ同じで書き換えが最小 |
+    | Python のループをそのまま移したい | numba-cuda | 1 スレッド分の処理を Python で書ける |
+    | ブロック単位で最適化したい | Triton | タイル分割とベクトル化をコンパイラに任せられる |
+    | 既存の CUDA C++ 資産がある | CuPy RawKernel | ソースを文字列で渡すだけ |
+    | 依存を最小にしたい、ドライバ API を直接叩きたい | cuda-python | 最も低水準。定型コードは増える |
+
+    **5. 転送は使い回しとページロックで効く。** `+transfer` の実測では、
+    確保済みのページロックメモリを使う cuda-python が 1 桁 ms 台で、
+    このときだけは vector add でも CPU を上回った。
+    毎回確保してページング可能なメモリから送る他の方式は数十 ms である。
+    同じ PCIe を通っていてもこれだけ変わる。
+
+    **6. `multiprocessing` と併用するなら順番に注意する。**
+    CUDA を使ったあとはプロセスの生成が重くなる。次章で実測する。
+
+    最後に、依存の重さを実際に測っておく。
+    カーネルを 1 つ書きたいだけなのか、深層学習の基盤ごと入れるのかで、
+    現実的な選択肢は変わる。`importlib.metadata` で、
+    導入済みディストリビューションのファイルサイズを合計する。
+    """)
+    return
+
+
+@app.cell
+def _(pd):
+    import re
+    from importlib.metadata import PackageNotFoundError, distribution, distributions
+
+    def distribution_mib(name):
+        try:
+            dist = distribution(name)
+        except PackageNotFoundError:
+            return None
+        if not dist.files:
+            return None
+        total = 0
+        for entry in dist.files:
+            try:
+                total += dist.locate_file(entry).stat().st_size
+            except OSError:
+                continue
+        return total / 2**20
+
+    def group_mib(names):
+        found = [size for size in map(distribution_mib, names) if size is not None]
+        return sum(found) if found else float("nan")
+
+    footprint_rows = [
+        {
+            "backend": "cuda-python",
+            "packages": "cuda-python, cuda-bindings, cuda-core",
+            "installed_MiB": group_mib(["cuda-python", "cuda-bindings", "cuda-core"]),
+        },
+        {
+            "backend": "CuPy",
+            "packages": "cupy-cuda13x",
+            "installed_MiB": group_mib(["cupy-cuda13x"]),
+        },
+        {
+            "backend": "numba-cuda",
+            "packages": "numba, numba-cuda, llvmlite",
+            "installed_MiB": group_mib(["numba", "numba-cuda", "llvmlite"]),
+        },
+        {
+            "backend": "Triton",
+            "packages": "triton",
+            "installed_MiB": group_mib(["triton"]),
+        },
+        {
+            "backend": "PyTorch",
+            "packages": "torch",
+            "installed_MiB": group_mib(["torch"]),
+        },
+    ]
+
+    nvidia_direct_of_torch = set()
+    try:
+        for _requirement in distribution("torch").requires or []:
+            _required = re.split(r"[<>=!~\[\s;]", _requirement.strip(), maxsplit=1)[0]
+            nvidia_direct_of_torch.add(_required.replace("_", "-").lower())
+    except PackageNotFoundError:
+        pass
+
+    torch_extra, cuda_common = 0.0, 0.0
+    for _dist in distributions():
+        _name = _dist.metadata["Name"] or ""
+        if not _name.replace("_", "-").lower().startswith("nvidia-"):
+            continue
+        _size = distribution_mib(_name)
+        if _size is None:
+            continue
+        if _name.replace("_", "-").lower() in nvidia_direct_of_torch:
+            torch_extra += _size
+        else:
+            cuda_common += _size
+    footprint_rows.append({
+        "backend": "CUDA ライブラリ (cuda-toolkit 経由)",
+        "packages": "nvidia-* (cuda-python / numba-cuda / torch が共有)",
+        "installed_MiB": cuda_common,
+    })
+    footprint_rows.append({
+        "backend": "PyTorch が追加で引き込む分",
+        "packages": "nvidia-cudnn / nccl / cusparselt / nvshmem",
+        "installed_MiB": torch_extra,
+    })
+    pd.DataFrame(footprint_rows).round(1)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    上の 5 行は各パッケージ自身のファイルだけを数えている。
+    差は明確で、**PyTorch と Triton が飛び抜けて大きく、CuPy と numba-cuda が中程度、
+    cuda-python が最も軽い**。
+
+    下の 2 行は CUDA 本体のライブラリである。この 2 行は分けて読む必要がある。
+
+    - **`cuda-toolkit` 経由の分は共有される。** パッケージのメタデータを辿ると、
+      `cuda-toolkit` を要求しているのは `cuda-bindings`・`numba-cuda`・`torch` の 3 つである。
+      つまり cuda-python も numba-cuda も、結局は同じ CUDA ライブラリ群を引き込む。
+      本体が軽いからといって、全体が軽くなるわけではない。
+    - **PyTorch はさらに cuDNN・NCCL・cuSPARSELt・NVSHMEM を足す。**
+      深層学習のための追加であり、カーネルを 1 つ書きたいだけなら不要である。
+
+    例外は CuPy で、**`cupy-cuda13x` の依存は `numpy` と `fastrlock` だけ**である。
+    CUDA のライブラリは wheel が実行時に読み込む。
+    NumPy 互換の API で書けて追加の依存も軽い、という点はこの表からも裏づけられる。
+
+    numba-cuda の 194 MiB のうち約 171 MiB は `llvmlite`（LLVM の Python バインディング）で、
+    これは CPU 側で `@njit` を使う時点で入る。
+    Numba を既に使っているなら、GPU へ広げる追加コストは小さい。
+
+    Triton は `torch` の依存として入るため、PyTorch を使う環境なら追加コストはない。
+    逆に、GPU カーネルを 1 つ書きたいだけの用途で PyTorch を丸ごと入れるかどうかは、
+    判断の分かれ目になる。
     """)
     return
 
