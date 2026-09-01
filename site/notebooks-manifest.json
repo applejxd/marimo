@@ -125,10 +125,20 @@
       "html_sha256": "14e299fd5801c9d7aabf88d94c07cb8d46fa2fe15b2fe5f800b35cc763b702ae",
       "source_sha256": "fe404ebaea633bdc12db792eae7a698e8dcc6d5a035fa8f37a94568d930ea9c7"
     },
+    "others/accelerated_python.py": {
+      "html": "others/accelerated_python.html",
+      "html_sha256": "93f5e3f0461b09bd1b3ba3a7b0deaa090972f4b482995d306cf30ea2ff1ab8d6",
+      "source_sha256": "e7a89f3feac6eaf0f11479ca2fa800f70a38b2d22a47d4f3bfbf20d6344588c1"
+    },
     "others/cpp.py": {
       "html": "others/cpp.html",
       "html_sha256": "150fb5ed2d31cff491665cbf7af3151dd9ac1ee55606e09c4d20e43cb67fe2a4",
       "source_sha256": "29767e128966f288a5d070211f3783fbb75b30d984e1a343f4c54fc7e1d15143"
+    },
+    "others/data_io.py": {
+      "html": "others/data_io.html",
+      "html_sha256": "281bd3c280a3d782220573fea56feb306a7ad0c1b9feafa2a6fa6813c7247daf",
+      "source_sha256": "0de30baaf76ab70a87652ada47eeeacc6b158c4f06a2597abc61a781d78b3d98"
     },
     "others/matplotlib_demo.py": {
       "html": "others/matplotlib_demo.html",
@@ -139,11 +149,6 @@
       "html": "others/open3d_point_cloud_registration.html",
       "html_sha256": "aac72b8d355357be5ce192a31feb5ffebc462453aaa8547e4da8f88b7d099c5f",
       "source_sha256": "f5ed097a483070de74eec90a92a75f6d4ffd2b4362305fc19b34b093651b6ca1"
-    },
-    "others/rapid_python.py": {
-      "html": "others/rapid_python.html",
-      "html_sha256": "085f6a8165c93c672adbe6c9f3aebe3740b46c6f6d8e7a5ca85939f6f2344a7f",
-      "source_sha256": "48c83fa6790dc788cf795978fd25912253169d9a628fd558db11fbad39dd77a0"
     },
     "quantum/grover.py": {
       "html": "quantum/grover.html",
