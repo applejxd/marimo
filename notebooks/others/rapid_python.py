@@ -89,12 +89,20 @@ def _(mo):
     mo.md(r"""
     # Python 高速化メモ
 
-    Python のコードを速くする手立てを、JIT コンパイル・GPU・並列処理・データ入出力の
-    4 つの軸で実測しながら比較する。
+    Python のコードを速くする手立てを、次の 4 つの軸で実測しながら比較する。
+
+    1. **JIT コンパイル** — Numba でループをネイティブコードへ落とす
+    2. **並列処理** — GIL・スレッド・プロセス・asyncio の使い分け
+    3. **GPU** — カーネルの書き方 6 通り、カーネル融合、演算律速の仕事
+    4. **データの読み書き** — CSV / Parquet / JSON
 
     このノートブックの計測はすべて 1 台のマシンで同一プロセス内で行う。
     絶対値は環境に強く依存するので、注目すべきは**手法どうしの比**と、
     どこで頭打ちになるかである。数値は下の「実行環境」セルの構成で得たものである。
+
+    速さの話と同じくらい、**計測そのものの落とし穴**を扱う。
+    コンパイラが計算を消してしまう例、GPU のクロックが落ちている例、
+    プロセス生成のコストが結果を支配する例を、それぞれ実測して示す。
     """)
     return
 
@@ -116,6 +124,9 @@ def _(mo):
     どちらも経過時間の計測に `time.perf_counter`（単調増加・高分解能）を使う。
     中央値と最小値を両方出すのは、外乱の混入を見分けるためである。
     両者が大きく離れていれば他のプロセスや電力制御の影響を疑う。
+
+    どちらも同期関数しか受け取れないので、asyncio の節だけは
+    非同期版を別に定義している。
     """)
     return
 
@@ -529,7 +540,7 @@ def _(mo):
     スレッドはほとんど速くならず、プロセスだけが効く。これが GIL の姿である。
 
     ただしプロセス 4 個でも 4 倍には届かない。プロセスの生成自体にコストがかかるためで、
-    その内訳は下の「fork のコスト」の節で測る。
+    この点は後半の「fork のコスト」の節で切り分ける。
 
     ### 例外：GIL を解放するライブラリ
 
@@ -549,15 +560,15 @@ def _(mo):
       反復回数を 1 桁小さくすると 1 タスクが数十 ms になり、プロセスを起こす時間の方が
       大きくなってワーカーを増やしても速くならない。
     - 6 個しかタスクが無いので頭打ちになる。8 まで増やすと 4 のときより遅くなることもある。
-      その内訳は下の「fork のコスト」の節で測る。
+      プロセスを 8 個起こすコストが、分割で得られる時間を上回るためである。
 
     ここで `ProcessPoolExecutor` を使えるのは、worker が
     `partial(hashlib.pbkdf2_hmac, ...)` という C 関数の partial で pickle 可能だからである。
     `fork` を選んでいる理由は pickle ではなく**起動コストの低さ**で、`spawn` でも動作する。
 
-    **このセルは GPU セクションより前に置いてある。** プロセス生成のコストは
-    親プロセスの大きさに影響されるため、GPU の初期化を挟む前後で比較できるようにしている。
-    ここでは比較の基準として、仕事をしない空のプールの起動・終了時間も測っておく。
+    このセルでは、仕事をしない空のプールの起動・終了時間も測っておく。
+    **ここはまだ GPU に一度も触れていない状態である。**
+    後半の「fork のコスト」の節で、GPU を使った後の同じ計測と突き合わせる。
     """)
     return
 
@@ -607,6 +618,73 @@ def _(cf, get_context, hashlib, os, partial, pd, time):
     _frame["speedup_vs_sequential"] = digest_sequential / _frame["elapsed_s"]
     _frame
     return cpu_tasks, digest_worker, empty_pool_seconds, fork_cost_before_cuda, worker_rows
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### プロセス間でデータを渡す
+
+    プロセスはメモリ空間を共有しないので、結果を受け取るには明示的な仕組みがいる。
+    代表的な 2 つを示す。
+
+    - **共有メモリ** (`Value` / `Array`): 固定長の値・配列を共有メモリ上に確保する。
+      `lock=False` はロックを付けない指定で、書き込みが競合しない使い方に限られる。
+      子プロセスが書き換えた結果を親がそのまま読める。
+    - **パイプ** (`Pipe`): 片方向（`duplex=False`）の接続を作り、
+      子が `send` した Python オブジェクトを親が `recv` で受け取る。
+      pickle 経由なので任意のオブジェクトを渡せるが、その分のコストがかかる。
+
+    パイプでは**親側が送信端を閉じる**ことが重要である。閉じ忘れると
+    送信端が開いたままになり、受信側が終端を検出できない。
+    """)
+    return
+
+
+@app.cell
+def _(get_context, pd):
+    fork_context = get_context("fork")
+
+    def shared_memory_target(number, array):
+        number.value = 3.1415927
+        for index in range(len(array)):
+            array[index] = -array[index]
+
+    shared_number = fork_context.Value("d", 0.0, lock=False)
+    shared_array = fork_context.Array("i", range(10), lock=False)
+    _process = fork_context.Process(target=shared_memory_target, args=(shared_number, shared_array))
+    _process.start()
+    _process.join()
+    _process.close()
+    pd.DataFrame([
+        {"shared_number": shared_number.value, "shared_array": list(shared_array)}
+    ])
+    return (fork_context,)
+
+
+@app.cell
+def _(fork_context, pd):
+    def pipe_target(index, send_end):
+        send_end.send({"index": index, "negated": -index})
+        send_end.close()
+
+    _endpoints = []
+    _processes = []
+    for _pipe_index in range(4):
+        _recv_end, _send_end = fork_context.Pipe(duplex=False)
+        _pipe_process = fork_context.Process(target=pipe_target, args=(_pipe_index, _send_end))
+        _pipe_process.start()
+        _send_end.close()  # 親側の送信端は閉じる
+        _endpoints.append(_recv_end)
+        _processes.append(_pipe_process)
+    pipe_messages = [_recv_end.recv() for _recv_end in _endpoints]
+    for _recv_end in _endpoints:
+        _recv_end.close()
+    for _pipe_process in _processes:
+        _pipe_process.join()
+        _pipe_process.close()
+    pd.DataFrame(pipe_messages)
+    return
 
 
 @app.cell(hide_code=True)
@@ -823,9 +901,11 @@ def _(mo):
     ただし 1 件ぶんの待ち（50 ms）ちょうどにはならない。
     クライアントの生成、接続の確立、スレッドプールやイベントループの立ち上げが
     上乗せされるためである。
-    **この規模では両者に大きな差は出ない。** asyncio が効いてくるのは、
-    同時接続が数百〜数千に増えてスレッドの生成とコンテキストスイッチが
-    無視できなくなってからである。
+    **この規模では両者に大きな差は出ない。** むしろ asyncio のほうがわずかに遅く出ることもある。
+    クライアントの生成とイベントループの立ち上げという固定費が、
+    6 件ぶんの節約より大きくなりうるからである。
+    asyncio が効いてくるのは、同時接続が数百〜数千に増えて
+    スレッドの生成とコンテキストスイッチが無視できなくなってからである。
 
     選択の基準は速度ではなく、コードの形になる。
     asyncio は呼び出し側まで `async` に染まるため、
@@ -856,78 +936,17 @@ def _(cleanup_server, fetch_status, io_rows, pd, thread_map, thread_urls):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### プロセス間でデータを渡す
+    ## GPU による高速化
 
-    プロセスはメモリ空間を共有しないので、結果を受け取るには明示的な仕組みがいる。
-    代表的な 2 つを示す。
+    この章は 3 段構えである。
 
-    - **共有メモリ** (`Value` / `Array`): 固定長の値・配列を共有メモリ上に確保する。
-      `lock=False` はロックを付けない指定で、書き込みが競合しない使い方に限られる。
-      子プロセスが書き換えた結果を親がそのまま読める。
-    - **パイプ** (`Pipe`): 片方向（`duplex=False`）の接続を作り、
-      子が `send` した Python オブジェクトを親が `recv` で受け取る。
-      pickle 経由なので任意のオブジェクトを渡せるが、その分のコストがかかる。
+    1. **カーネルを書く 6 つの方法** — 同じ計算を 6 通りで書いて比べる
+    2. **カーネル融合** — 複数の演算を 1 つのカーネルにまとめる
+    3. **演算律速の仕事** — 行列積で、GPU が本当に効く条件を見る
 
-    パイプでは**親側が送信端を閉じる**ことが重要である。閉じ忘れると
-    送信端が開いたままになり、受信側が終端を検出できない。
-    """)
-    return
+    ### カーネルを書く 6 つの方法
 
-
-@app.cell
-def _(get_context, pd):
-    fork_context = get_context("fork")
-
-    def shared_memory_target(number, array):
-        number.value = 3.1415927
-        for index in range(len(array)):
-            array[index] = -array[index]
-
-    shared_number = fork_context.Value("d", 0.0, lock=False)
-    shared_array = fork_context.Array("i", range(10), lock=False)
-    _process = fork_context.Process(target=shared_memory_target, args=(shared_number, shared_array))
-    _process.start()
-    _process.join()
-    _process.close()
-    pd.DataFrame([
-        {"shared_number": shared_number.value, "shared_array": list(shared_array)}
-    ])
-    return (fork_context,)
-
-
-@app.cell
-def _(fork_context, pd):
-    def pipe_target(index, send_end):
-        send_end.send({"index": index, "negated": -index})
-        send_end.close()
-
-    _endpoints = []
-    _processes = []
-    for _pipe_index in range(4):
-        _recv_end, _send_end = fork_context.Pipe(duplex=False)
-        _pipe_process = fork_context.Process(target=pipe_target, args=(_pipe_index, _send_end))
-        _pipe_process.start()
-        _send_end.close()  # 親側の送信端は閉じる
-        _endpoints.append(_recv_end)
-        _processes.append(_pipe_process)
-    pipe_messages = [_recv_end.recv() for _recv_end in _endpoints]
-    for _recv_end in _endpoints:
-        _recv_end.close()
-    for _pipe_process in _processes:
-        _pipe_process.join()
-        _pipe_process.close()
-    pd.DataFrame(pipe_messages)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## GPU で計算する 6 つの方法
-
-    ### 比較の題材と計測の約束
-
-    題材はもっとも単純な要素ごとの加算 `c[i] = a[i] + b[i]` で、
+    まず、もっとも単純な要素ごとの加算 `c[i] = a[i] + b[i]` を題材にする。
     要素数は $2^{24}$（float32 で 1 配列あたり 64 MiB）。
     この演算は 1 要素あたり浮動小数点演算 1 回に対して 12 バイトの読み書きが発生するため、
     完全に**メモリ帯域律速**である。したがって、どの方式で書いても
@@ -939,7 +958,7 @@ def _(mo):
     | 方式 | カーネルの記述言語 | 位置づけ |
     | --- | --- | --- |
     | numba-cuda | Python | Python のサブセットをそのまま CUDA カーネルへ |
-    | CuPy 要素演算 | 書かない | NumPy 互換 API。裏で融合カーネルを生成 |
+    | CuPy 要素演算 | 書かない | NumPy 互換 API。演算ごとにカーネルを生成する |
     | CuPy RawKernel | CUDA C++ | C++ の文字列を実行時コンパイル |
     | PyTorch | 書かない | 実際に最も広く使われる経路 |
     | Triton | Python (DSL) | ブロック単位で書く。タイル分割は自動 |
@@ -1485,7 +1504,7 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 結果
+    ### vector add の結果
 
     6 方式の結果を実効メモリ帯域とともに並べる。`bandwidth_GB_per_s` は
     「読み 2 本 + 書き 1 本」の 3 配列分のバイト数を所要時間で割った値である。
@@ -1753,18 +1772,18 @@ def _(mo):
     「GPU は速い／遅い」と一般化できず、
     転送量あたりどれだけ計算するかで判断するしかない。
 
-    ただし `speedup_with_transfer` の列は $N$ を大きくしても増えない。
-    理論上は計算が $N^3$、転送が $N^2$ なので $N$ とともに有利になるはずだが、
-    ここでは 2 つの要因がそれを打ち消している。
+    ただし `speedup_with_transfer` の列は、$N$ とともに素直には伸びない。
+    理論だけを見れば計算が $N^3$、転送が $N^2$ なので $N$ とともに一方的に有利になるはずだが、
+    実測は途中で頭打ちになり、いちばん大きい $N$ では下がる。2 つの要因が絡んでいる。
 
-    - `cpu_TFLOPS` 列のとおり、CPU 側も $N$ が大きいほど効率が上がる（比較相手が強くなる）。
-    - `gpu_transfer_ms` の伸びが $N^2$ より速い。$N$ を 1024 から 2048 へ倍にした区間は
-      転送量に比例して増えるが、4096 ではそれ以上に跳ねる。
+    - `cpu_TFLOPS` 列のとおり、CPU 側も $N$ が大きいほど効率が上がる。
+      比較相手が強くなるので、GPU の優位はその分だけ削られる。
+    - `gpu_transfer_ms` の伸びが、いちばん大きい $N$ で $N^2$ を大きく超える。
       この転送はページング可能なホストメモリを使い、毎回デバイスメモリを確保し直すため、
-      大きなサイズでステージングと再確保のコストが効いてくる。
+      サイズが大きくなるとステージングと再確保のコストが効いてくる。
 
     転送を本気で速くするならページロックメモリと確保の使い回しが要る。
-    それでも**行列積では転送を含めても GPU が勝つ**という結論は変わらない。
+    それでも**行列積では、どの $N$ でも転送を含めて GPU が勝つ**という結論は変わらない。
 
     もう 1 つ読み取れるのは、`cpu_TFLOPS` と `gpu_kernel_TFLOPS` の差である。
     どちらも人が書いたループではなく、BLAS と cuBLAS という
@@ -1780,10 +1799,15 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 落とし穴：fork のコストは親プロセスの大きさで決まる
+    ## 落とし穴：fork のコストは親プロセスの大きさで決まる
 
-    上の表でワーカーを 8 に増やしても頭打ちになっている。
-    6 タスクしか無いことに加えて、**プロセスの生成そのものが重い**からである。
+    ここで並列処理の節へ戻る。あの節では、ワーカーを 8 に増やしても
+    速度が頭打ちになっていた。6 タスクしか無いことに加えて、
+    **プロセスの生成そのものが重い**からである。
+
+    この節を GPU の後に置いているのは、**同じプロセスで GPU を使う前と後を
+    比べたい**からである。並列処理の節では GPU に一度も触れていない状態で測り、
+    ここでは GPU セクションを通した後の状態で測り直す。
 
     `fork` は親のアドレス空間を子へ引き継ぐ。実データはコピーオンライトで共有されるが、
     ページテーブルの複製と各種ランタイムの後処理は親のメモリマップの大きさに比例する。
@@ -1806,8 +1830,8 @@ def _(mo):
 
     よく「CUDA を初期化したプロセスから fork するな」と言われる。子プロセスの中で
     CUDA を使えないことは常に成り立つ制約である。しかし**コストの面では、
-    3 と 4 の差は 1 から 3 での増え方に比べてはるかに小さく、実行ごとの揺らぎと
-    同程度である**。効いているのは CUDA の初期化ではなく、
+    3 と 4 の差は 1 から 3 で積み上げた増え方に比べてずっと小さい**。
+    効いているのは CUDA の初期化そのものではなく、
     **親プロセスが抱えるメモリマップの大きさ**である。1 から 3 へ import を積むだけで
     空プールの生成は数倍になり、5 から 6 の増加も、GPU セクションで確保した
     デバイスメモリとページロックメモリを含む footprint 全体の増加による。
