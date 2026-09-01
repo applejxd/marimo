@@ -25,20 +25,17 @@ def _():
     from pathlib import Path
     from threading import Thread
 
-    import dask.dataframe as dd
     import httpx
     import marimo as mo
     import numpy as np
-    import orjson
     import pandas as pd
-    import polars as pl
     import requests
     from numba import njit, prange
     from tqdm.contrib.concurrent import thread_map
 
     notebook_dir = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
     repo_root = notebook_dir.parents[1]
-    data_dir = repo_root / "data" / "others" / "rapid_python"
+    data_dir = repo_root / "data" / "others" / "accelerated_python"
     data_dir.mkdir(parents=True, exist_ok=True)
     warnings.filterwarnings(
         "ignore",
@@ -60,7 +57,6 @@ def _():
         cf,
         ctypes,
         data_dir,
-        dd,
         get_context,
         hashlib,
         httpx,
@@ -68,11 +64,9 @@ def _():
         mo,
         njit,
         np,
-        orjson,
         os,
         partial,
         pd,
-        pl,
         prange,
         requests,
         socket,
@@ -89,12 +83,14 @@ def _(mo):
     mo.md(r"""
     # Python 高速化メモ
 
-    Python のコードを速くする手立てを、次の 4 つの軸で実測しながら比較する。
+    **このノートの主軸は、マルチコアと CUDA による計算の加速である。**
+    同じ計算を複数の方法で書いて実測し、どこで頭打ちになるかを見る。
 
-    1. **JIT コンパイル** — Numba でループをネイティブコードへ落とす
-    2. **並列処理** — GIL・スレッド・プロセス・asyncio の使い分け
+    1. **JIT コンパイル** — Numba でループをネイティブコードへ落とす（単一コア）
+    2. **並列処理** — GIL・スレッド・プロセス・asyncio の使い分け（複数コア）
     3. **GPU** — カーネルの書き方 6 通り、カーネル融合、演算律速の仕事
-    4. **データの読み書き** — CSV / Parquet / JSON
+
+    単一コアから複数コア、GPU へと対象を広げていく。
 
     このノートブックの計測はすべて 1 台のマシンで同一プロセス内で行う。
     絶対値は環境に強く依存するので、注目すべきは**手法どうしの比**と、
@@ -103,6 +99,9 @@ def _(mo):
     速さの話と同じくらい、**計測そのものの落とし穴**を扱う。
     コンパイラが計算を消してしまう例、GPU のクロックが落ちている例、
     プロセス生成のコストが結果を支配する例を、それぞれ実測して示す。
+
+    なお、計算より前段で効くことの多いファイル入出力は扱わない。
+    そちらは別のノート「データ入出力の高速化」で比較している。
     """)
     return
 
@@ -617,7 +616,7 @@ def _(cf, get_context, hashlib, os, partial, pd, time):
     _frame = pd.DataFrame(worker_rows)
     _frame["speedup_vs_sequential"] = digest_sequential / _frame["elapsed_s"]
     _frame
-    return cpu_tasks, digest_worker, empty_pool_seconds, fork_cost_before_cuda, worker_rows
+    return empty_pool_seconds, fork_cost_before_cuda
 
 
 @app.cell(hide_code=True)
@@ -2053,131 +2052,6 @@ print(time.perf_counter() - start)
         {"parent": "6. this notebook, after GPU", "empty_pool_ms": empty_pool_seconds() * 1e3},
     ]
     pd.DataFrame(fork_rows).round(1)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## データの読み書き
-
-    最後に入出力を比べる。題材は次の 2 つで、いずれもこのセルで生成する。
-
-    - 表データ: 200,000 行 4 列（`carat` / `depth` / `table` / `price`）を
-      CSV と Parquet の両方で `data/others/rapid_python/` へ書き出す。
-    - JSON: 5,000 要素の配列（各要素は `id` / `value` / `square`）。
-
-    表データの読み込みで比べるのは次の 6 通り。
-
-    | 手法 | 中身 |
-    | --- | --- |
-    | `pandas.read_csv` | 既定の C エンジン |
-    | `pandas.read_csv(engine="pyarrow")` | Arrow のパーサ。複数コアを使う |
-    | `pandas.read_parquet` | 列指向・型付き・圧縮済みの形式 |
-    | `polars.read_csv` | Rust 実装。並列パース |
-    | `polars.read_parquet` | 同上 |
-    | `dask.dataframe.read_csv().compute()` | タスクグラフを組んで分割実行 |
-
-    注目してほしいのは 2 点。
-
-    1. **CSV をやめると速くなる。** CSV はテキストなので、読むたびに数値へ変換し直し、
-       型を推定し直す必要がある。Parquet は型と列の境界を持っているのでその作業が要らない。
-       ファイルサイズも小さくなるので、後で `size_MiB` 列と併せて見る。
-    2. **同じ CSV でもパーサで変わる。** pandas の既定は単一コアの C 実装だが、
-       `engine="pyarrow"` と polars は複数コアでパースする。
-
-    dask はこの規模では pandas より遅い。タスクグラフの構築という固定コストが乗るためで、
-    有利になるのはメモリに載らない大きさや、分割して並列処理できる場合である。
-
-    JSON 側では `json` と `orjson` を読み書きの両方で比べる。
-    `orjson` は C 実装で、この規模でも確実に速い。
-    """)
-    return
-
-
-@app.cell
-def _(benchmark, data_dir, dd, np, pd, pl):
-    rng_data = np.random.default_rng(0)
-    TABLE_ROWS = 200_000
-    csv_path = data_dir / "diamonds.csv"
-    parquet_path = data_dir / "diamonds.parquet"
-    table_frame = pd.DataFrame({
-        "carat": rng_data.uniform(0.2, 2.5, size=TABLE_ROWS).round(3),
-        "depth": rng_data.uniform(55.0, 70.0, size=TABLE_ROWS).round(3),
-        "table": rng_data.uniform(50.0, 70.0, size=TABLE_ROWS).round(3),
-        "price": rng_data.integers(300, 18000, size=TABLE_ROWS),
-    })
-    table_frame.to_csv(csv_path, index=False)
-    table_frame.to_parquet(parquet_path)
-
-    table_cases = [
-        ("pandas.read_csv (c)", "csv", lambda: pd.read_csv(csv_path)),
-        (
-            "pandas.read_csv (pyarrow)",
-            "csv",
-            lambda: pd.read_csv(csv_path, engine="pyarrow"),
-        ),
-        ("pandas.read_parquet", "parquet", lambda: pd.read_parquet(parquet_path)),
-        ("polars.read_csv", "csv", lambda: pl.read_csv(csv_path)),
-        ("polars.read_parquet", "parquet", lambda: pl.read_parquet(parquet_path)),
-        ("dask.read_csv", "csv", lambda: dd.read_csv(csv_path).compute()),
-    ]
-    table_rows = []
-    for _label, _fmt, _reader in table_cases:
-        _result = benchmark(_label, _reader, repeats=3, warmup_s=0.1)
-        _path = csv_path if _fmt == "csv" else parquet_path
-        table_rows.append({
-            "task": _label,
-            "format": _fmt,
-            "elapsed_ms": _result["min_ms"],
-            "size_MiB": _path.stat().st_size / 2**20,
-        })
-    _frame = pd.DataFrame(table_rows)
-    _frame["speedup_vs_pandas_csv"] = _frame["elapsed_ms"].iloc[0] / _frame["elapsed_ms"]
-    _frame.round(3)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    続いて JSON の読み書きを `json` と `orjson` で比べる。
-    """)
-    return
-
-
-@app.cell
-def _(data_dir, json, np, orjson, pd, timed_call):
-    rng_json = np.random.default_rng(1)
-    json_path = data_dir / "large-file.json"
-    json_payload = [
-        {"id": int(index), "value": float(value), "square": float(value**2)}
-        for index, value in enumerate(rng_json.normal(size=5000))
-    ]
-    json_path.write_text(json.dumps(json_payload, ensure_ascii=False), encoding="utf-8")
-
-    _, json_elapsed = timed_call(
-        "json.loads", lambda: json.loads(json_path.read_text(encoding="utf-8"))
-    )
-    data_orjson, orjson_elapsed = timed_call(
-        "orjson.loads", lambda: orjson.loads(json_path.read_bytes())
-    )
-    _, dump_elapsed = timed_call(
-        "json.dumps",
-        lambda: (data_dir / "large-file.standard.json").write_text(
-            json.dumps(data_orjson), encoding="utf-8"
-        ),
-    )
-    _, orjson_dump_elapsed = timed_call(
-        "orjson.dumps",
-        lambda: (data_dir / "large-file.orjson.json").write_bytes(orjson.dumps(data_orjson)),
-    )
-    pd.DataFrame([
-        {"task": "json.loads", "elapsed_s": json_elapsed, "group": "read"},
-        {"task": "orjson.loads", "elapsed_s": orjson_elapsed, "group": "read"},
-        {"task": "json.dumps", "elapsed_s": dump_elapsed, "group": "write"},
-        {"task": "orjson.dumps", "elapsed_s": orjson_dump_elapsed, "group": "write"},
-    ])
     return
 
 
