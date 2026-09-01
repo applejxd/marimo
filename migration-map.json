@@ -1,5 +1,0 @@
-{
-  "ml/sklearn.ipynb": "ml/ridge_regression_diabetes.py",
-  "others/matplotlib.ipynb": "others/matplotlib_demo.py",
-  "others/open3d.ipynb": "others/open3d_point_cloud_registration.py"
-}

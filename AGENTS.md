@@ -27,7 +27,6 @@ uv sync --all-groups
 uv run ruff check .
 uv run marimo check --strict notebooks
 uv run python scripts/check_math.py
-uv run python scripts/check_migration.py
 uv run python scripts/check_site.py
 
 # 編集・実行
@@ -36,7 +35,7 @@ uv run --all-groups marimo edit notebooks/<path>.py
 # ビルド（変更した notebook だけを再実行する）
 uv run python scripts/build_site.py --notebook <path>.py
 
-# ビルド（全 38 冊を再実行。GPU 込みで 30 分以上かかる）
+# ビルド（全 39 冊を再実行。GPU 込みで 30 分以上かかる）
 uv run python scripts/build_site.py
 ```
 
@@ -53,9 +52,9 @@ uv run python scripts/build_site.py
 - `notebooks/`: 公開する marimo notebook。`build_site.py` が再帰的に自動検出するため、
   一覧を手で管理する必要はない。
 - `site/`: 生成物。Git の管理対象なので、notebook を変更したら必ず再生成してコミットする。
-- `legacy/`: 移行元の Jupyter notebook。参照専用で変更しない。
 - `scripts/`: 検証とビルド。`_generated/`・`*.npz`・`data/` は `.gitignore` 済み。
-- ファイル名を変えたときは `migration-map.json` に記録する（`check_migration.py` が検査する）。
+- ファイル名を変えたときは `site/` の旧 HTML を削除し、`build_site.py --notebook` で
+  再生成する（manifest は部分ビルドでも旧エントリを落とすようになっている）。
 
 ## notebook の規約
 
@@ -85,11 +84,10 @@ uv run python scripts/build_site.py
   - 依存関係の追加・変更（`pyproject.toml` / `uv.lock`）
   - CI 設定（`.github/workflows/`）の変更
   - 全 notebook の再ビルド（GPU 込みで 30 分以上かかる）
-  - notebook のファイル名変更（`migration-map.json` と `site/` の更新を伴う）
+  - notebook のファイル名変更（`site/` の旧 HTML 削除と再生成を伴う）
 - Never:
   - 秘密情報（API キー、`.env`、トークン）をコミットしない。秘密情報を必要とする
     notebook は 1 つも無い。必要になった時点で設計を見直す。
-  - `legacy/` を変更しない。
   - `site/` を手で編集しない（必ず `build_site.py` で生成する）。
   - notebook を変更したまま `site/` を更新せずにコミットしない。
   - 破壊的操作（履歴改変、force push、大量削除）を無断実行しない。

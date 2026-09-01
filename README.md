@@ -1,11 +1,8 @@
 # marimo による科学技術 notebook
 
 科学技術計算と機械学習のサンプルを、実行可能な
-[marimo](https://marimo.io/) notebook として管理しています。元の Jupyter notebook は
-移行内容を確認できるように [`legacy/`](legacy/) へ保管し、現在使用する notebook は
-[`notebooks/`](notebooks/) に配置しています。元のファイル名が import する Python
-パッケージと衝突する notebook の名称変更は
-[`migration-map.json`](migration-map.json) に記録しています。
+[marimo](https://marimo.io/) notebook として [`notebooks/`](notebooks/) で
+管理しています。
 
 ## 実行環境
 
@@ -35,7 +32,6 @@ uv run --all-groups marimo run notebooks/algorithm/GradientDescent.py
 ## 検証
 
 ```shell
-uv run python scripts/check_migration.py
 uv run ruff check .
 uv run marimo check --strict notebooks
 uv run python scripts/check_math.py
