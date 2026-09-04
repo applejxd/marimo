@@ -35,7 +35,7 @@ uv run --all-groups marimo edit notebooks/<path>.py
 # ビルド（変更した notebook だけを再実行する）
 uv run python scripts/build_site.py --notebook <path>.py
 
-# ビルド（全 39 冊を再実行。GPU 込みで 30 分以上かかる）
+# ビルド（全 41 冊を再実行。GPU 込みで 30 分以上かかる）
 uv run python scripts/build_site.py
 ```
 

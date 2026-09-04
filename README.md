@@ -15,12 +15,20 @@ uv sync --all-groups
 
 `gpu` グループでは PyTorch と TensorFlow をインストールします。すべての notebook から
 サイトを生成する場合は CUDA 対応 GPU の使用を想定していますが、CUDA を利用できない
-環境では notebook が明示的に CPU を選択します。`specialized` グループには NGSolve や
+環境では notebook が明示的に CPU を選択します。同グループには
+`notebooks/ml/scratch/tabpfn_scratch.py` がスクラッチ実装の比較対象として使う公式
+TabPFN も含まれます。バージョンは `2.2.1` に固定しています。8.5.0 以降は重みの
+ダウンロードにライセンスの対話的同意と API キーが必要になり、秘密情報を使わない
+という本リポジトリの方針と両立しないためです。`specialized` グループには NGSolve や
 Open3D などの大規模なパッケージやネイティブパッケージが含まれます。
 `notebooks/others/cpp.py` の実行には OpenMP 対応の C++ コンパイラも必要です。
 
 API キーなどの秘密情報を必要とする notebook はありません。公開データセットは固定した
 URL から取得し、Git の追跡対象外である `data/` ディレクトリへキャッシュします。
+`notebooks/ml/scratch/` の 2 冊が使う diamonds データセットだけは
+`seaborn.load_dataset()` 経由のため、seaborn 既定の `~/seaborn-data` へキャッシュされます。
+公式 TabPFN の学習済み重みも初回実行時に HuggingFace から取得してキャッシュするので、
+これらの notebook の初回ビルドにはネットワーク接続が必要です。
 
 ## notebook の実行と編集
 
