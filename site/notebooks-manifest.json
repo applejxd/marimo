@@ -100,6 +100,16 @@
       "html_sha256": "052dfce60b91b14ea779cc09e93c233e7094b5aebc569ed5fba2c074f867c0bb",
       "source_sha256": "b765ce264e798c63e5a50a9fc9a8e8d48b823cea7ac4a9cbedf795e2b35011f7"
     },
+    "ml/scratch/gbdt.py": {
+      "html": "ml/scratch/gbdt.html",
+      "html_sha256": "703e78c681d3676f9891277ed6111281f592cc538e375cc0d619997d4ba7d0ef",
+      "source_sha256": "994793df667357d06479208bf381d760128050aae5190d5b568fc4e8a6f2acf0"
+    },
+    "ml/scratch/tabpfn_scratch.py": {
+      "html": "ml/scratch/tabpfn_scratch.html",
+      "html_sha256": "df785ed8bba4822bd7f6e9670ad2f647375d96c2c2dc571b287171d338620bbf",
+      "source_sha256": "99e9b1f49ef2648f4dc655bfd6e04be7629fb548551d65230edd4911be22b2f0"
+    },
     "ml/torch/mnist_convert.py": {
       "html": "ml/torch/mnist_convert.html",
       "html_sha256": "feda8e3ec69151d7b8f9c178ce2dc61518cd4e6cd9319be43b1b42c79a6124ea",
